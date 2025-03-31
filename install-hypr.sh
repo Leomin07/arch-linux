@@ -1,6 +1,6 @@
 sudo git clone https://aur.archlinux.org/yay.git
 sudo chown -R minhtd:minhtd yay-git/
-cd yay-git/
+cd yay/
 makepkg -si
 yay -Suy
 cd /opt
