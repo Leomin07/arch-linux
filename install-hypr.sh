@@ -8,7 +8,7 @@ echo "Đang cài đặt yay..."
 sudo git clone https://aur.archlinux.org/yay.git
 sudo chown -R $USER_NAME:$USER_NAME yay
 cd yay
-makepkg -s
+makepkg -si
 cd ..
 rm -rf yay  # Xóa thư mục sau khi cài đặt yay xong
 
