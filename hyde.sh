@@ -17,11 +17,11 @@ fi
 
 # Clone repo Hyde
 echo "Cloning Hyde repository..."
-git clone https://github.com/Hyde-project/hyde.git ~/hyde
+git clone https://github.com/Hyde-project/hyde.git ~/HyDE
 
 # Chạy script cài đặt của Hyde
 echo "Running Hyde install script..."
-cd ~/hyde && ./install.sh
+cd ~/HyDE/Scripts/ && chmod +x install.sh && ./install.sh
 
 # Hoàn tất
 echo "Hyde installation complete! Restart your session to use Hyde."

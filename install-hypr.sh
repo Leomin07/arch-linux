@@ -31,3 +31,11 @@ cd ~/.config/hyprdots && ./install.sh
 
 # Hoàn tất
 echo "Hyprdots installation complete! Restart your session and select Hyprland."
+
+# Clone repo Arch-Hyprland
+echo "Cloning Arch-Hyprland repository..."
+git clone https://github.com/prasanthrangan/hyprdots.git  ~/hyprdots
+
+# Chạy script cài đặt của Arch-Hyprland
+echo "Running Arch-Hyprland install script..."
+cd ~/hyprdots/scripts && chmod +x install.sh && ./install.sh
