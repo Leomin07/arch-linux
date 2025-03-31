@@ -23,5 +23,3 @@ git clone https://github.com/JaKooLit/Arch-Hyprland.git ~/Arch-Hyprland
 echo "Running Arch-Hyprland install script..."
 cd ~/Arch-Hyprland && chmod +x install.sh && ./install.sh
 
-# Hoàn tất
-echo "Arch-Hyprland installation complete! Restart your session and select Hyprland."
