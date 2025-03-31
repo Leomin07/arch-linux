@@ -1,114 +1,96 @@
 #!/bin/bash
 
-# Lấy tên người dùng hiện tại
-USER_NAME=$(whoami)
-
 # Cập nhật hệ thống
-echo "Cập nhật hệ thống..."
 sudo pacman -Syu --noconfirm
 
+# Cài đặt các gói cần thiết
+sudo pacman -S --noconfirm git base-devel wayland wayland-protocols wlroots xdg-desktop-portal-hyprland 
+sudo pacman -S --noconfirm hyprland waybar kitty rofi dunst brightnessctl pavucontrol network-manager-applet 
+sudo pacman -S --noconfirm grim slurp wl-clipboard xclip udisk2 sddm
+
 # Cài đặt yay nếu chưa có
-echo "Cài đặt yay..."
-sudo pacman -S --needed base-devel git --noconfirm
 if ! command -v yay &> /dev/null; then
-    git clone https://aur.archlinux.org/yay-bin.git
-    cd yay-bin
+    git clone https://aur.archlinux.org/yay.git
+    sudo chown -R $(whoami):$(whoami) yay
+    cd yay
     makepkg -si --noconfirm
     cd ..
-    rm -rf yay-bin
+    rm -rf yay
 fi
 
-echo "Cập nhật hệ thống với yay..."
-yay -Suy --noconfirm
+# Cài đặt các gói AUR
+yay -S --noconfirm hyprland-git hyprpaper-git hyprcursor-git grimblast
 
-# Cài đặt Hyprland và các gói liên quan
-echo "Cài đặt Hyprland và các gói hỗ trợ..."
-yay -S hyprland waybar rofi dunst alacritty neovim grimblast brightnessctl pavucontrol nwg-look --noconfirm
+# Kích hoạt SDDM
+sudo systemctl enable sddm
+sudo systemctl start sddm
 
-# Tạo thư mục cấu hình Hyprland
-echo "Cấu hình Hyprland..."
+# Tạo thư mục cấu hình
 mkdir -p ~/.config/hypr
 
-# Chỉnh sửa file cấu hình Hyprland
-echo "Chỉnh sửa file cấu hình Hyprland..."
-cat <<EOL > ~/.config/hypr/hyprland.conf
+# Cấu hình Hyprland
+cat <<EOT > ~/.config/hypr/hyprland.conf
+# Hyprland Config
+
 monitor=,preferred,auto,auto
 
 general {
     gaps_in = 5
     gaps_out = 10
-    border_size = 3
-    col.active_border = rgba(33ccffee) rgba(116677ff) 45deg
+    border_size = 2
+    col.active_border = rgba(33ccffee) 
     col.inactive_border = rgba(595959aa)
-    layout = dwindle
-}
-
-input {
-    kb_layout = us
-    follow_mouse = 1
-    touchpad {
-        natural_scroll = yes
-    }
-}
-
-bind = SUPER, RETURN, exec, alacritty
-bind = SUPER, Q, killactive
-bind = SUPER, E, exec, rofi -show drun
-bind = SUPER, V, togglefloating
-bind = SUPER SHIFT, S, exec, grimblast copy area
-bind = SUPER, F, fullscreen
-bind = SUPER, LEFT, movefocus, l
-bind = SUPER, RIGHT, movefocus, r
-bind = SUPER, UP, movefocus, u
-bind = SUPER, DOWN, movefocus, d
-bind = SUPER ALT, LEFT, resizeactive, -20 0
-bind = SUPER ALT, RIGHT, resizeactive, 20 0
-bind = SUPER ALT, UP, resizeactive, 0 -20
-bind = SUPER ALT, DOWN, resizeactive, 0 20
-bind = SUPER, SPACE, togglefloating
-bind = SUPER, TAB, cyclenext
-
-animation {
-    enabled = true
-    animation = windows, 1, 5, default
-    animation = border, 1, 10, default
-    animation = fade, 1, 10, default
 }
 
 decoration {
     rounding = 10
     blur {
         enabled = true
-        size = 10
-        passes = 2
+        size = 8
+        passes = 3
     }
-    drop_shadow = true
-    shadow_range = 20
-    shadow_render_power = 2
 }
 
-autostart {
-    waybar &
-    dunst &
-    nm-applet &
-    pavucontrol &
+animations {
+    enabled = true
 }
-EOL
 
-# Cấu hình biến môi trường
-echo "Cấu hình biến môi trường..."
-cat <<EOL >> ~/.bashrc
-export XDG_SESSION_TYPE=wayland
-export GDK_BACKEND=wayland
-export QT_QPA_PLATFORM=wayland
-export CLUTTER_BACKEND=wayland
-EOL
-source ~/.bashrc
+input {
+    kb_layout = us
+    follow_mouse = 1
+}
 
-# Cấu hình trình quản lý đăng nhập
-sudo pacman -S sddm --noconfirm
-echo "Cấu hình SDDM..."
-sudo systemctl enable sddm
+exec-once = waybar &
+exec-once = nm-applet &
+exec-once = hyprpaper &
+EOT
 
+# Xử lý lỗi thường gặp
+cat <<EOT > ~/.config/hypr/fix_common_issues.sh
+#!/bin/bash
 
-echo "Cài đặt và cấu hình hoàn tất! Khởi động lại hệ thống và chọn Hyprland."
+echo "Đang sửa lỗi thường gặp..."
+
+# Kiểm tra và sửa lỗi missing xdg-desktop-portal
+if ! pgrep -x "xdg-desktop-portal" > /dev/null; then
+    echo "Khởi động xdg-desktop-portal"
+    /usr/lib/xdg-desktop-portal &
+fi
+
+# Kiểm tra và sửa lỗi Wayland session
+if [ -z "$WAYLAND_DISPLAY" ]; then
+    echo "Wayland session chưa được thiết lập. Hãy đăng nhập lại với SDDM."
+fi
+
+# Sửa lỗi liên quan đến cấu hình không tồn tại
+sed -i '/decoration:drop_shadow/d' ~/.config/hypr/hyprland.conf
+sed -i '/decoration:shadow_range/d' ~/.config/hypr/hyprland.conf
+sed -i '/decoration:shadow_render_power/d' ~/.config/hypr/hyprland.conf
+
+echo "Hoàn tất sửa lỗi!"
+EOT
+
+chmod +x ~/.config/hypr/fix_common_issues.sh
+
+# Khởi động lại để áp dụng thay đổi
+echo "Cài đặt hoàn tất! Vui lòng khởi động lại máy."
