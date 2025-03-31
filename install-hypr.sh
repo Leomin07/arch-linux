@@ -4,9 +4,9 @@
 sudo pacman -Syu --noconfirm -y
 
 # Cài đặt các gói cần thiết
-sudo pacman -S --noconfirm -y git base-devel wayland wayland-protocols wlroots xdg-desktop-portal-hyprland 
+sudo pacman -S --noconfirm -y git base-devel sddm wayland wayland-protocols wlroots xdg-desktop-portal-hyprland 
 sudo pacman -S --noconfirm -y hyprland waybar kitty rofi dunst brightnessctl pavucontrol network-manager-applet 
-sudo pacman -S --noconfirm -y grim slurp wl-clipboard xclip udisk2 sddm
+sudo pacman -S --noconfirm -y grim slurp wl-clipboard xclip udisk2
 
 # Cài đặt yay nếu chưa có
 if ! command -v yay &> /dev/null; then
