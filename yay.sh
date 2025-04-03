@@ -21,3 +21,5 @@ rm -rf yay-bin
 
 # Kiểm tra phiên bản yay để xác nhận cài đặt thành công
 yay --version
+
+sudo pacman -S stow
