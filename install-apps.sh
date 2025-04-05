@@ -14,9 +14,6 @@ USER_NAME="MinhTD"
 USER_EMAIL="tranminhsvp@gmail.com"
 SSH_KEY_FILE="$HOME/.ssh/id_ed25519"
 FISH_SHELL="/usr/bin/fish"
-WORKSPACE_CONFIG="$HOME/.config/hypr/workspaces.conf"
-OLD_MONITOR="monitor:DP-1"
-NEW_MONITOR="monitor:HDMI-A-1"
 
 PACKAGES=(
     "google-chrome"
@@ -70,8 +67,7 @@ install_package() {
 install_docker() {
     if ! is_installed "docker"; then
         log_info "Installing Docker..."
-        sudo pacman -S --noconfirm docker
-        sudo systemctl enable --now docker
+        sudo pacman -S --noconfirm docker && sudo systemctl enable --now docker
     else
         log_info "Docker is already installed, skipping."
     fi
@@ -81,7 +77,7 @@ set_default_shell() {
     local current_shell=$(getent passwd "$USER" | cut -d: -f7)
     if [ "$current_shell" != "$FISH_SHELL" ]; then
         log_info "Changing default shell to fish for user $USER..."
-        chsh -s "$FISH_SHELL" "$USER"
+        sudo chsh -s "$FISH_SHELL" "$USER"
     else
         log_info "Default shell is already fish."
     fi
@@ -116,6 +112,7 @@ configure_git() {
     git config --global user.email "$USER_EMAIL"
 
     if [ ! -f "$SSH_KEY_FILE" ]; then
+        log_info "Generating SSH key..."
         ssh-keygen -t ed25519 -C "$USER_EMAIL" -f "$SSH_KEY_FILE" -N ""
         eval "$(ssh-agent -s)"
         ssh-add --apple-use-keychain "$SSH_KEY_FILE"
@@ -123,16 +120,6 @@ configure_git() {
         log_success "SSH key đã copy vào clipboard. Dán lên GitHub: https://github.com/settings/keys"
     else
         log_success "SSH key đã tồn tại (bỏ qua)"
-    fi
-}
-
-replace_monitor_in_config() {
-    if [ -f "$WORKSPACE_CONFIG" ]; then
-        sed -i "s/$OLD_MONITOR/$NEW_MONITOR/g" "$WORKSPACE_CONFIG"
-        log_info "Replaced all instances of '$OLD_MONITOR' with '$NEW_MONITOR' in '$WORKSPACE_CONFIG'."
-        # cat "$WORKSPACE_CONFIG" # Optional: Print the modified file
-    else
-        log_warning "Workspace config file '$WORKSPACE_CONFIG' not found, skipping monitor replacement."
     fi
 }
 # --- End Helper Functions ---
@@ -156,9 +143,6 @@ install_fisher
 install_fish_plugins
 install_wine
 configure_git
-
-# Replace monitor in Hyprland workspace config
-replace_monitor_in_config
 
 log_success "Thiết lập hoàn tất!"
 
