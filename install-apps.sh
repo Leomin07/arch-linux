@@ -1,83 +1,149 @@
 #!/bin/bash
-#  _      ______ ____  __  __ _____ _   _
-# | |    |  ____/ __ \|  \/  |_   _| \ | |
-# | |    | |__ | |  | | \  / | | | |  \| |
-# | |    |  __|| |  | | |\/| | | | | . ` |
-# | |____| |___| |__| | |  | |_| |_| |\  |
+#  _       ______ ____  __  __ _____ _  _
+# | |     | ____/ __ \ \/ / |  ___| \ | |
+# | |     | |__ | |  | \  /  | |_  |  \| |
+# | |     |  __|| |  | |\/|  |  _| | . ` |
+# | |____ | |___| |__| |  |  | |  | |\  |
 # |______|______\____/|_|  |_|_____|_| \_|
 
 set -e
 
-# Cài đặt múi giờ
-echo ">> Setting timezone to Asia/Ho_Chi_Minh"
-sudo timedatectl set-timezone Asia/Ho_Chi_Minh
+# --- Configuration ---
+TIMEZONE="Asia/Ho_Chi_Minh"
+USER_NAME="MinhTD"
+USER_EMAIL="tranminhsvp@gmail.com"
+SSH_KEY_FILE="$HOME/.ssh/id_ed25519"
+FISH_SHELL="/usr/bin/fish"
 
-# Cập nhật hệ thống
-echo ">> Updating system..."
-sudo pacman -Syu --noconfirm
+PACKAGES=(
+    "google-chrome"
+    "postman"
+    "dbeaver"
+    "visual-studio-code-bin"
+    "mongodb-compass"
+    "fish"
+    "docker"
+    "python"
+    "nodejs"
+    "yarn"
+)
 
-# Hàm cài đặt nếu gói chưa có
-install_if_not_exist() {
-    if ! pacman -Q "$1" &>/dev/null && ! yay -Q "$1" &>/dev/null; then
-        echo ">> Installing $1..."
-        yay -S --noconfirm "$1"
+FISH_PLUGINS=(
+    "gazorby/fish-abbreviation-tips"
+    "jhillyerd/plugin-git"
+    "jethrokuan/z"
+    "jorgebucaran/autopair.fish"
+)
+# --- End Configuration ---
+
+# --- Helper Functions ---
+log_info() {
+    echo ">> $1"
+}
+
+log_success() {
+    echo "✅ $1"
+}
+
+log_warning() {
+    echo "⚠️ $1"
+}
+
+is_installed() {
+    local pkg="$1"
+    pacman -Q "$pkg" &>/dev/null || yay -Q "$pkg" &>/dev/null
+}
+
+install_package() {
+    local pkg="$1"
+    if ! is_installed "$pkg"; then
+        log_info "Installing $pkg..."
+        yay -S --noconfirm "$pkg"
     else
-        echo ">> $1 is already installed, skipping."
+        log_info "$pkg is already installed, skipping."
     fi
 }
 
-# Cài đặt các gói phần mềm
-packages=(
-    google-chrome
-    postman
-    dbeaver
-    visual-studio-code-bin
-    mongodb-compass
-    fish
-    docker
-    python  # Thêm python vào danh sách
-    nodejs  # Thêm nodejs vào danh sách
-    yarn    # Thêm yarn vào danh sách
-)
+install_docker() {
+    if ! is_installed "docker"; then
+        log_info "Installing Docker..."
+        sudo pacman -S --noconfirm docker
+        sudo systemctl enable --now docker
+    else
+        log_info "Docker is already installed, skipping."
+    fi
+}
 
-for pkg in "${packages[@]}"; do
-    install_if_not_exist "$pkg"
+set_default_shell() {
+    local current_shell=$(getent passwd "$USER" | cut -d: -f7)
+    if [ "$current_shell" != "$FISH_SHELL" ]; then
+        log_info "Changing default shell to fish for user $USER..."
+        chsh -s "$FISH_SHELL" "$USER"
+    else
+        log_info "Default shell is already fish."
+    fi
+}
+
+install_fisher() {
+    if ! fish -c "type -q fisher"; then
+        log_info "Installing fisher..."
+        fish -c 'curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher'
+    else
+        log_info "Fisher is already installed, skipping."
+    fi
+}
+
+install_fish_plugins() {
+    for plugin in "${FISH_PLUGINS[@]}"; do
+        fish -c "fisher install $plugin"
+    done
+}
+
+install_wine() {
+    if ! is_installed "wine"; then
+        log_info "Installing Wine..."
+        sudo pacman -S --noconfirm wine wine-mono wine-gecko winetricks
+    else
+        log_info "Wine is already installed, skipping."
+    fi
+}
+
+configure_git() {
+    git config --global user.name "$USER_NAME"
+    git config --global user.email "$USER_EMAIL"
+
+    if [ ! -f "$SSH_KEY_FILE" ]; then
+        ssh-keygen -t ed25519 -C "$USER_EMAIL" -f "$SSH_KEY_FILE" -N ""
+        eval "$(ssh-agent -s)"
+        ssh-add --apple-use-keychain "$SSH_KEY_FILE"
+        pbcopy < "$SSH_KEY_FILE.pub"
+        log_success "SSH key đã copy vào clipboard. Dán lên GitHub: https://github.com/settings/keys"
+    else
+        log_success "SSH key đã tồn tại (bỏ qua)"
+    fi
+}
+# --- End Helper Functions ---
+
+# --- Main Script ---
+
+log_info "Setting timezone to $TIMEZONE"
+sudo timedatectl set-timezone "$TIMEZONE"
+
+log_info "Updating system..."
+sudo pacman -Syu --noconfirm
+
+# Install packages
+for pkg in "${PACKAGES[@]}"; do
+    install_package "$pkg"
 done
 
-# Cài Docker nếu chưa có
-if ! pacman -Q docker &>/dev/null; then
-    echo ">> Installing Docker..."
-    sudo pacman -S --noconfirm docker
-    sudo systemctl enable --now docker
-else
-    echo ">> Docker is already installed, skipping."
-fi
+install_docker
+set_default_shell
+install_fisher
+install_fish_plugins
+install_wine
+configure_git
 
-# Đổi shell mặc định sang fish nếu chưa
-CURRENT_SHELL=$(getent passwd "$USER" | cut -d: -f7)
-if [ "$CURRENT_SHELL" != "/usr/bin/fish" ]; then
-    echo ">> Changing default shell to fish for user $USER..."
-    chsh -s /usr/bin/fish "$USER"
-else
-    echo ">> Default shell is already fish."
-fi
+log_success "Thiết lập hoàn tất!"
 
-# Cài fisher nếu chưa có
-if ! fish -c "type -q fisher"; then
-    echo ">> Installing fisher..."
-    fish -c 'curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher'
-else
-    echo ">> Fisher is already installed, skipping."
-fi
-
-# Cài các plugin cho Fish
-fish_plugins=(
-    gazorby/fish-abbreviation-tips
-    jhillyerd/plugin-git
-    jethrokuan/z
-    jorgebucaran/autopair.fish
-)
-
-for plugin in "${fish_plugins[@]}"; do
-    fish -c "fisher install $plugin"
-done
+# --- End Main Script ---
