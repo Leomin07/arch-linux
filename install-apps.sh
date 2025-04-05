@@ -26,6 +26,13 @@ PACKAGES=(
     "python"
     "nodejs"
     "yarn"
+    "fcitx5"
+    "fcitx5-configtool"
+    "fcitx5-qt"
+    "fcitx5-gtk"
+    "fcitx5-bamboo"
+    "qt6-base-git"
+    "cloudflare-warp-bin"
 )
 
 FISH_PLUGINS=(
@@ -34,6 +41,9 @@ FISH_PLUGINS=(
     "jethrokuan/z"
     "jorgebucaran/autopair.fish"
 )
+
+HYPR_CONFIG_FILE="$HOME/.config/hypr/hyprland.conf"
+FISH_CONFIG_FILE="$HOME/.config/fish/config.fish"
 # --- End Configuration ---
 
 # --- Helper Functions ---
@@ -116,10 +126,67 @@ configure_git() {
         ssh-keygen -t ed25519 -C "$USER_EMAIL" -f "$SSH_KEY_FILE" -N ""
         eval "$(ssh-agent -s)"
         ssh-add --apple-use-keychain "$SSH_KEY_FILE"
-        pbcopy < "$SSH_KEY_FILE.pub"
+        pbcopy <"$SSH_KEY_FILE.pub"
         log_success "SSH key đã copy vào clipboard. Dán lên GitHub: https://github.com/settings/keys"
     else
         log_success "SSH key đã tồn tại (bỏ qua)"
+    fi
+}
+
+configure_fcitx5() {
+    log_info "Setting up fcitx5..."
+
+    # Install necessary packages
+    install_package "fcitx5"
+    install_package "fcitx5-configtool"
+    install_package "fcitx5-qt"
+    install_package "fcitx5-gtk"
+    install_package "fcitx5-bamboo"
+
+    # Set environment variables in Fish shell
+    if ! grep -q "GTK_IM_MODULE fcitx" "$FISH_CONFIG_FILE"; then
+        log_info "Setting up environment variables for fcitx5 in Fish shell..."
+        cat <<EOF >>"$FISH_CONFIG_FILE"
+# fcitx5 environment variables
+set -Ux GTK_IM_MODULE fcitx
+set -Ux QT_IM_MODULE fcitx
+set -Ux XMODIFIERS @im=fcitx
+set -Ux SDL_IM_MODULE fcitx
+set -Ux GLFW_IM_MODULE fcitx
+set -Ux INPUT_METHOD fcitx
+EOF
+    else
+        log_info "Environment variables for fcitx5 are already set in Fish shell, skipping."
+    fi
+
+    # Add fcitx5 to Hyprland autostart
+    if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
+        log_info "Adding fcitx5 to Hyprland autostart..."
+        echo "exec-once = fcitx5 -d" >>"$HYPR_CONFIG_FILE"
+    else
+        log_info "fcitx5 is already in Hyprland autostart, skipping."
+    fi
+
+    # Install Qt6
+    install_package "qt6-base-git"
+}
+
+configure_warp() {
+    log_info "Setting up Cloudflare WARP..."
+    install_package "cloudflare-warp-bin"
+
+    if warp-cli status | grep -q "Disconnected"; then
+        log_info "Registering Cloudflare WARP..."
+        warp-cli registration new
+        log_info "Connecting to Cloudflare WARP..."
+        warp-cli connect
+        if warp-cli status | grep -q "Connected"; then
+            log_success "Cloudflare WARP connected successfully."
+        else
+            log_warning "Failed to connect to Cloudflare WARP. Check logs with 'journalctl -u warp-svc'."
+        fi
+    else
+        log_info "Cloudflare WARP is already connected or in a connecting state."
     fi
 }
 # --- End Helper Functions ---
@@ -142,7 +209,12 @@ set_default_shell
 install_fisher
 install_fish_plugins
 install_wine
+configure_fcitx5
+configure_warp
 configure_git
+
+log_info "Reloading Hyprland to apply changes..."
+hyprctl reload
 
 log_success "Thiết lập hoàn tất!"
 
