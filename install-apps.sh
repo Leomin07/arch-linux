@@ -14,9 +14,9 @@ USER_NAME="MinhTD"
 USER_EMAIL="tranminhsvp@gmail.com"
 SSH_KEY_FILE="$HOME/.ssh/id_ed25519"
 FISH_SHELL="/usr/bin/fish"
-FILE_NAME="$HOME/.config/hypr/workspaces.conf"
-OLD_TEXT="monitor:DP-1"
-NEW_TEXT="monitor:HDMI-A-1"
+WORKSPACE_CONFIG="$HOME/.config/hypr/workspaces.conf"
+OLD_MONITOR="monitor:DP-1"
+NEW_MONITOR="monitor:HDMI-A-1"
 
 PACKAGES=(
     "google-chrome"
@@ -125,6 +125,16 @@ configure_git() {
         log_success "SSH key đã tồn tại (bỏ qua)"
     fi
 }
+
+replace_monitor_in_config() {
+    if [ -f "$WORKSPACE_CONFIG" ]; then
+        sed -i "s/$OLD_MONITOR/$NEW_MONITOR/g" "$WORKSPACE_CONFIG"
+        log_info "Replaced all instances of '$OLD_MONITOR' with '$NEW_MONITOR' in '$WORKSPACE_CONFIG'."
+        # cat "$WORKSPACE_CONFIG" # Optional: Print the modified file
+    else
+        log_warning "Workspace config file '$WORKSPACE_CONFIG' not found, skipping monitor replacement."
+    fi
+}
 # --- End Helper Functions ---
 
 # --- Main Script ---
@@ -147,15 +157,9 @@ install_fish_plugins
 install_wine
 configure_git
 
+# Replace monitor in Hyprland workspace config
+replace_monitor_in_config
+
 log_success "Thiết lập hoàn tất!"
 
-# Check if the file exists
-if [ -f "$FILE_NAME" ]; then
-  # Replace the text in the file
-  sed -i "s/$OLD_TEXT/$NEW_TEXT/g" "$FILE_NAME"
-  echo "Đã thay thế tất cả các instances của '$OLD_TEXT' thành '$NEW_TEXT' trong file '$FILE_NAME'."
-  cat "$FILE_NAME"
-else
-  echo "File '$FILE_NAME' không tồn tại."
-fi
 # --- End Main Script ---
