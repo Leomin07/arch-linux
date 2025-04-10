@@ -25,7 +25,6 @@ PACKAGES=(
     "visual-studio-code-bin"
     "mongodb-compass"
     "fish"
-    "docker"
     "python"
     "nodejs"
     "yarn"
@@ -82,15 +81,6 @@ install_package() {
         yay -S --noconfirm "$pkg"
     else
         log_info "$pkg is already installed, skipping."
-    fi
-}
-
-install_docker() {
-    if ! is_installed "docker"; then
-        log_info "Installing Docker..."
-        sudo pacman -S --noconfirm docker && sudo systemctl enable --now docker
-    else
-        log_info "Docker is already installed, skipping."
     fi
 }
 
@@ -294,7 +284,6 @@ for pkg in "${PACKAGES[@]}"; do
     install_package "$pkg"
 done
 
-install_docker
 set_default_shell
 install_fisher
 install_fish_plugins
