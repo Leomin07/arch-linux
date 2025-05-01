@@ -29,12 +29,6 @@ PACKAGES=(
     "nodejs"
     "yarn"
     "telegram-desktop"
-    "wine"
-    "wine-mono"
-    "wine_gecko"
-    "lib32-libpulse"
-    "lib32-libvkd3d"
-    "lib32-vulkan-icdloaders"
     "nwg-displays"
     "ffmpeg"
     "dotnet"
@@ -112,15 +106,6 @@ install_fish_plugins() {
             log_info "Fish plugin '$plugin' is already installed."
         fi
     done
-}
-
-install_wine() {
-    if ! is_installed "wine"; then
-        log_info "Installing Wine..."
-        sudo pacman -S --noconfirm wine wine-mono wine-gecko winetricks
-    else
-        log_info "Wine is already installed, skipping."
-    fi
 }
 
 configure_git() {
@@ -287,7 +272,6 @@ done
 set_default_shell
 install_fisher
 install_fish_plugins
-install_wine
 configure_git
 configure_fcitx5
 # configure_warp_client
