@@ -7,8 +7,8 @@ echo "Đang cập nhật danh sách gói..."
 sudo pacman -Syu --noconfirm
 
 # Cài đặt các gói cần thiết
-echo "Đang cài đặt DWM, Polybar, Rofi, xorg-xinit, xterm, kitty và base-devel..."
-sudo pacman -S --needed --noconfirm dwm polybar rofi xorg-xinit xterm kitty base-devel
+echo "Đang cài đặt DWM, Polybar, Rofi, xorg-xinit, kitty và base-devel..."
+sudo pacman -S --needed --noconfirm dwm polybar rofi xorg-xinit kitty base-devel
 
 # Cài đặt yay
 echo "Đang cài đặt yay..."
