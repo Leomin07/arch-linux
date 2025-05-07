@@ -9,3 +9,4 @@ Install Hyprland...
 ```
 https://codeberg.org/XADE/dotbin/wiki
 https://github.com/tokisuno/dotfiles
+https://github.com/darkkal44/Cozytile/
