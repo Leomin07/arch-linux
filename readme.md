@@ -7,3 +7,4 @@ Install Hyprland...
 ```
  nwg-dock-hyprland -i 32 -w 5 -mb 10 -ml 10 -mr 10 -x -s $style -c  "rofi -show drun" -o HDMI-A-1
 ```
+https://github.com/JhonatanFerrer/JhoalfercoQtileDotfiles/tree/main
