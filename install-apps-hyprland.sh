@@ -32,6 +32,10 @@ PACKAGES=(
     "nwg-displays"
     "ffmpeg"
     "dotnet"
+    "docker"
+    "vim"
+    "neovim"
+    "stow"
 )
 
 DESKTOP_PACKAGES=(
@@ -153,7 +157,7 @@ EOF
         log_info "fcitx5 is already in Hyprland autostart, skipping."
     fi
 
-    configure_hyprland_binds
+    
 }
 
 configure_hyprland_binds() {
@@ -274,9 +278,9 @@ install_fisher
 install_fish_plugins
 configure_git
 configure_fcitx5
-# configure_warp_client
+configure_warp_client
 
-check_nwg_dock_line
+#check_nwg_dock_line
 
 log_success "Thiết lập hoàn tất!"
 
