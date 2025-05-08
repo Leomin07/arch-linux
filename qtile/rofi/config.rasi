@@ -1,0 +1,84 @@
+configuration {
+  show-icons: false;
+  display-drun: "drun";
+  disable-history: false;
+}
+
+* {
+  font: "JetBrains Mono SemiBold 12";
+  background: #141b1e;
+  foreground: #dadada;
+  primary: #67b0e8;
+  secondary: #8ccf7e;
+  urgent: #e57474;
+}
+
+window {
+  width: 480px;
+  padding: 0px;
+  border: 0px;
+  background-color: @background;
+}
+
+inputbar {
+  spacing: 8px;
+  padding: 48px 16px;
+  text-color: @foreground;
+  background-color: transparent;
+  background-image: url("~/.config/rofi/images/lighthouse.png", width);
+  children: [ prompt,textbox-prompt-colon,entry,case-indicator ];
+}
+
+entry {
+  enabled: true;
+  placeholder: "";
+  expand: false;
+  width: 256px;
+  padding: 12px 24px;
+  border-radius: 64px;
+  background-color: @background;
+  text-color: @foreground;
+}
+
+prompt {
+  padding: 12px 16px;
+  border-radius: 64px;
+  background-color: @background;
+  text-color: @secondary;
+}
+mainbox {
+  border:  0;
+  padding: 0;
+}
+
+textbox {
+  text-color: @foreground;
+}
+
+textbox-prompt-colon {
+  enabled: false;
+}
+
+listview {
+  lines: 8;
+  fixed-height: true;
+  scrollbar: false;
+  spacing: 0;
+  padding: 16px;
+  border: 0;
+}
+
+element {
+  padding: 8px 16px 8px 16px;
+  border: 0;
+}
+
+element.selected.normal {
+  background-color: @primary;
+  text-color: @background;
+}
+
+element.alternate.normal {
+  background-color: @background;
+  text-color: @foreground;
+}

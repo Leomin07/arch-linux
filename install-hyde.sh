@@ -34,8 +34,6 @@ sudo systemctl enable --now snapd.apparmor.servic
 sudo ln -s /var/lib/snapd/snap /sn
 
 
-yay -S ml4w-hyprland
-
-ml4w-hyprland-setup
-
-
+git clone --depth 1 https://github.com/HyDE-Project/HyDE ~/HyDE
+cd ~/HyDE/Scripts
+./install.sh

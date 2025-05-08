@@ -1,12 +1,13 @@
 #!/bin/bash
-#  _       ______ ____  __  __ _____ _  _
-# | |     | ____/ __ \ \/ / |  ___| \ | |
-# | |     | |__ | |  | \  /  | |_  |  \| |
-# | |     |  __|| |  | |\/|  |  _| | . ` |
-# | |____ | |___| |__| |  |  | |  | |\  |
+
+#  _     ______ ____  __  __ _____ _  _
+# | |    |  ____/ __ \|  \/  |_   _| \ | |
+# | |    | |__ | |  | | \  / | | | |  \| |
+# | |    |  __|| |  | | |\/| | | | | . ` |
+# | |____| |___| |__| | |  | |_| |_| |\  |
 # |______|______\____/|_|  |_|_____|_| \_|
 
-set -e
+set -euo pipefail # More robust error handling
 
 # --- Configuration ---
 TIMEZONE="Asia/Ho_Chi_Minh"
@@ -14,8 +15,10 @@ USER_NAME="MinhTD"
 USER_EMAIL="tranminhsvp@gmail.com"
 SSH_KEY_FILE="$HOME/.ssh/id_ed25519"
 FISH_SHELL="/usr/bin/fish"
-FISH_CONFIG_FILE="$HOME/.config/fish/config.fish"
-HYPR_CONFIG_FILE="$HOME/.config/hypr/hyprland.conf"
+FISH_CONFIG_DIR="$HOME/.config/fish" # Consistent variable
+FISH_CONFIG_FILE="$FISH_CONFIG_DIR/config.fish"
+HYPR_CONFIG_DIR="$HOME/.config/hypr" # Consistent variable
+HYPR_CONFIG_FILE="$HYPR_CONFIG_DIR/hyprland.conf"
 MAIN_MOD="SUPER" # Assuming SUPER key for Hyprland binds
 
 PACKAGES=(
@@ -36,6 +39,14 @@ PACKAGES=(
     "vim"
     "neovim"
     "stow"
+    "nautilus"
+    "lazydocker"
+    "sublime-text-4"
+    "bat"
+    "fzf"
+    "ripgrep" # added ripgrep
+    "tree"      # Added tree
+    "wget"      # Add wget
 )
 
 DESKTOP_PACKAGES=(
@@ -51,7 +62,9 @@ FISH_PLUGINS=(
     "jhillyerd/plugin-git"
     "jethrokuan/z"
     "jorgebucaran/autopair.fish"
+    "francoiscariou/fish-foreign-env" # Add fish-foreign-env
 )
+
 # --- End Configuration ---
 
 # --- Helper Functions ---
@@ -67,16 +80,24 @@ log_warning() {
     echo "⚠️ $1"
 }
 
+log_error() {
+    echo "❌ $1"
+}
+
 is_installed() {
     local pkg="$1"
-    pacman -Q "$pkg" &>/dev/null || yay -Q "$pkg" &>/dev/null
+    command -v "$pkg" &>/dev/null
 }
 
 install_package() {
     local pkg="$1"
     if ! is_installed "$pkg"; then
         log_info "Installing $pkg..."
-        yay -S --noconfirm "$pkg"
+        sudo pacman -S --noconfirm "$pkg"
+        if [ "$?" -ne 0 ]; then
+            log_error "Failed to install $pkg"
+            exit 1
+        fi
     else
         log_info "$pkg is already installed, skipping."
     fi
@@ -87,15 +108,23 @@ set_default_shell() {
     if [ "$current_shell" != "$FISH_SHELL" ]; then
         log_info "Changing default shell to fish for user $USER..."
         sudo chsh -s "$FISH_SHELL" "$USER"
+        if [ "$?" -ne 0 ]; then
+            log_error "Failed to change default shell."
+            exit 1
+        fi
     else
         log_info "Default shell is already fish."
     fi
 }
 
 install_fisher() {
-    if ! fish -c "type -q fisher"; then
+    if ! is_installed "fisher"; then
         log_info "Installing fisher..."
-        fish -c 'curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher'
+        curl -sL https://git.io/fisher | source && fish -c "fisher install jorgebucaran/fisher"
+        if [ "$?" -ne 0 ]; then
+            log_error "Failed to install fisher."
+            exit 1
+        fi
     else
         log_info "Fisher is already installed, skipping."
     fi
@@ -106,6 +135,10 @@ install_fish_plugins() {
         if ! fish -c "fisher list | grep -q '$plugin'"; then
             log_info "Installing Fish plugin: $plugin"
             fish -c "fisher install $plugin"
+             if [ "$?" -ne 0 ]; then
+                log_error "Failed to install fish plugin: $plugin"
+                exit 1
+            fi
         else
             log_info "Fish plugin '$plugin' is already installed."
         fi
@@ -119,9 +152,13 @@ configure_git() {
     if [ ! -f "$SSH_KEY_FILE" ]; then
         log_info "Generating SSH key..."
         ssh-keygen -t ed25519 -C "$USER_EMAIL" -f "$SSH_KEY_FILE" -N ""
-        log_success "Generating SSH key hoàn tất"
+        if [ "$?" -ne 0 ]; then
+            log_error "Failed to generate SSH key."
+            exit 1
+        fi
+        log_success "Generated SSH key"
     else
-        log_success "SSH key đã tồn tại (bỏ qua)"
+        log_success "SSH key already exists (skipping)"
     fi
 }
 
@@ -133,15 +170,17 @@ configure_fcitx5() {
         install_package "$pkg"
     done
 
-    # Set environment variables in Fish shell
-    if ! grep -q "GTK_IM_MODULE fcitx5" "$FISH_CONFIG_FILE"; then
+    # Create config dir if it does not exist
+    mkdir -p "$FISH_CONFIG_DIR"
+
+    # Set environment variables in Fish shell, check if the line exists
+    if ! grep -q "set -Ux GTK_IM_MODULE fcitx5" "$FISH_CONFIG_FILE"; then
         log_info "Setting up environment variables for fcitx5 in Fish shell..."
-        mkdir -p "$(dirname "$FISH_CONFIG_FILE")"
         cat <<EOF >>"$FISH_CONFIG_FILE"
 # fcitx5 environment variables
 set -Ux GTK_IM_MODULE fcitx5
 set -Ux QT_IM_MODULE fcitx5
-set -Ux XMODIFIERS @im=fcitx5
+set -Ux XMODIFIERS "@im=fcitx5"
 set -Ux SDL_IM_MODULE fcitx5
 set -Ux GLFW_IM_MODULE fcitx5
 set -Ux INPUT_METHOD fcitx5
@@ -150,42 +189,44 @@ EOF
         log_info "Environment variables for fcitx5 are already set in Fish shell, skipping."
     fi
 
-    if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
+    # Add fcitx5 to Hyprland autostart, check if the line exists
+     if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
         log_info "Adding fcitx5 to Hyprland autostart..."
         echo "exec-once = fcitx5 -d" >>"$HYPR_CONFIG_FILE"
     else
         log_info "fcitx5 is already in Hyprland autostart, skipping."
     fi
-
-    
 }
+
+
 
 configure_hyprland_binds() {
     local file_path="$HYPR_CONFIG_FILE"
-    # local ctrl_c_bind="bind = $MAIN_MOD, C, sendshortcut, CTRL, C"
-    local ctrl_v_bind="bind = $MAIN_MOD, V, sendshortcut, CTRL, V"
-    local ctrl_shift_c_bind="bind = CTRL SHIFT, C, exec, wl-copy"
+    local ctrl_c_bind="bind = $MAIN_MOD,C,copy" # Changed to "copy"
+    local ctrl_v_bind="bind = $MAIN_MOD,V,paste" # Changed to "paste"
+    local ctrl_shift_c_bind="bind = CTRL SHIFT,C,exec,wl-copy"
 
     if [ ! -f "$file_path" ]; then
         log_warning "Hyprland configuration file not found at '$file_path'. Skipping keybind configuration."
         return 1
     fi
 
-    if ! check_hyprland_bind "$ctrl_c_bind"; then
+    # Use check_hyprland_config function
+    if ! check_hyprland_config "$ctrl_c_bind"; then
         log_info "Adding Hyprland bind: $ctrl_c_bind"
         echo "$ctrl_c_bind" >>"$file_path"
     else
         log_info "Hyprland bind already exists: $ctrl_c_bind"
     fi
 
-    if ! check_hyprland_bind "$ctrl_v_bind"; then
+    if ! check_hyprland_config "$ctrl_v_bind"; then
         log_info "Adding Hyprland bind: $ctrl_v_bind"
         echo "$ctrl_v_bind" >>"$file_path"
     else
         log_info "Hyprland bind already exists: $ctrl_v_bind"
     fi
 
-    if ! check_hyprland_bind "$ctrl_shift_c_bind"; then
+    if ! check_hyprland_config "$ctrl_shift_c_bind"; then
         log_info "Adding Hyprland bind: $ctrl_shift_c_bind"
         echo "$ctrl_shift_c_bind" >>"$file_path"
     else
@@ -193,80 +234,106 @@ configure_hyprland_binds() {
     fi
 }
 
-check_hyprland_bind() {
-    local bind_to_check="$1"
+# Function to check for existing Hyprland config lines
+check_hyprland_config() {
+    local config_line="$1"
     local file_path="$HYPR_CONFIG_FILE"
-
-    if grep -q "$bind_to_check" "$file_path"; then
-        return 0 # Exists
-    else
-        return 1 # Does not exist
-    fi
+    grep -q "$config_line" "$file_path"
 }
 
+
 configure_warp_client() {
-    if ! is_installed "cloudflare-warp-bin"; then
-        install_package "cloudflare-warp-bin"
+    local warp_package="cloudflare-warp-bin" # Consistent variable
+    if ! is_installed "$warp_package"; then
+        install_package "$warp_package"
     fi
 
-    if command -v warp-cli &>/dev/null; then
+    if is_installed "warp-cli"; then
         log_info "Cloudflare WARP CLI tool found."
         sudo systemctl enable --now warp-svc
         if [ "$?" -ne 0 ]; then
-            log_warning "Failed to enable and start warp-svc."
+            log_error "Failed to enable and start warp-svc."
+            exit 1
         fi
         log_info "Registering Cloudflare WARP..."
         warp-cli registration new
+         if [ "$?" -ne 0 ]; then
+            log_error "Failed to register WARP."
+            exit 1
+        fi
         log_info "Connecting to Cloudflare WARP..."
         warp-cli connect
-        if warp-cli status | grep -q "Connected"; then
+         if [ "$?" -ne 0 ]; then
+            log_error "Failed to connect to WARP."
+            exit 1
+        fi
+        if warp-cli status | grep -q "Status: Connected"; then # Corrected the grep
             log_success "Cloudflare WARP connected successfully."
         else
             log_warning "Failed to connect to Cloudflare WARP. Check logs with 'journalctl -u warp-svc'."
         fi
     else
-        log_warning "warp-cli command not found. Ensure cloudflare-warp-bin is installed correctly."
+        log_warning "warp-cli command not found. Ensure $warp_package is installed correctly."
     fi
 }
 
-check_nwg_dock_line() {
-    local file_path="$HOME/.config/nwg-dock-hyprland/launch.sh"
-    local target_line='nwg-dock-hyprland -i 32 -w 5 -mb 10 -ml 10 -mr 10 -x -s \$style -c  "rofi -show drun" -o HDMI-A-1'
-    local original_line='nwg-dock-hyprland -i 32 -w 5 -mb 10 -ml 10 -mr 10 -x -s \$style -c  "rofi -show drun"'
-
-    if [ ! -f "$file_path" ]; then
-        log_warning "File '$file_path' not found."
-        return 1
+install_docker() {
+    if is_installed "docker"; then
+        log_info "Docker is already installed. Skipping installation."
+        return
     fi
 
-    if ! grep -q "$target_line" "$file_path"; then
-        if grep -q "$original_line" "$file_path"; then
-            log_info "Replacing existing nwg-dock line with output specification..."
-            sed -i "s|$original_line|$target_line|" "$file_path"
-            if [ "$?" -eq 0 ]; then
-                log_success "Successfully added output specification to nwg-dock line."
-                return 0
-            else
-                log_warning "Failed to add output specification to nwg-dock line."
-                return 1
-            fi
-        else
-            log_info "Original nwg-dock line not found. Skipping modification."
-            return 1
-        fi
-    else
-        log_info "nwg-dock line with output specification already exists."
-        return 0
+    log_info "Installing Docker..."
+    sudo pacman -S --noconfirm docker docker-compose # Install docker-compose
+     if [ "$?" -ne 0 ]; then
+        log_error "Failed to install Docker."
+        exit 1
     fi
+
+    log_info "Enabling and starting Docker service..."
+    sudo systemctl start docker.service
+    
+    sudo systemctl enable docker.service
+     if [ "$?" -ne 0 ]; then
+        log_error "Failed to enable docker service."
+        exit 1
+    fi
+
+    
+    log_info "Adding current user to docker group..."
+    sudo usermod -aG docker "$USER"
+     if [ "$?" -ne 0 ]; then
+        log_error "Failed to add user to docker group.  You may need to log out and back in."
+        exit 1
+    fi
+
+    log_success "Docker installation completed. Please log out and log back in or run 'newgrp docker' to apply group changes."
+
+    log_info "Verifying Docker installation..."
+    sudo docker run hello-world
+     if [ "$?" -ne 0 ]; then
+        log_error "Docker test failed. Try restarting or checking system logs."
+        exit 1
+    fi
+    log_success "Docker installation verified."
 }
+
 
 # --- Main Script ---
 
 log_info "Setting timezone to $TIMEZONE"
 sudo timedatectl set-timezone "$TIMEZONE"
+ if [ "$?" -ne 0 ]; then
+    log_error "Failed to set timezone."
+    exit 1
+fi
 
 log_info "Updating system..."
 sudo pacman -Syu --noconfirm
+ if [ "$?" -ne 0 ]; then
+    log_error "Failed to update system."
+    exit 1
+fi
 
 # Install base packages
 for pkg in "${PACKAGES[@]}"; do
@@ -277,11 +344,24 @@ set_default_shell
 install_fisher
 install_fish_plugins
 configure_git
-configure_fcitx5
+#configure_fcitx5
+#configure_hyprland_binds # Call the hyprland config function
 configure_warp_client
+install_docker
 
-#check_nwg_dock_line
+# Install gedit using snap
+if is_installed "snap"; then
+    log_info "Installing gedit via snap..."
+    sudo snap install gedit
+     if [ "$?" -ne 0 ]; then
+        log_error "Failed to install gedit via snap."
+        exit 1
+    fi
+else
+    log_warning "Snap is not installed.  Skipping gedit installation via snap."
+fi
 
-log_success "Thiết lập hoàn tất!"
+log_success "Setup completed!"
 
 # --- End Main Script ---
+
