@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#  _     ______ ____  __  __ _____ _  _
+#  _      ______ ____  __  __ _____ _   _
 # | |    |  ____/ __ \|  \/  |_   _| \ | |
 # | |    | |__ | |  | | \  / | | | |  \| |
 # | |    |  __|| |  | | |\/| | | | | . ` |
@@ -25,7 +25,6 @@ PACKAGES=(
     "google-chrome"
     "postman"
     "dbeaver"
-    "visual-studio-code-bin"
     "mongodb-compass"
     "fish"
     "python"
@@ -34,19 +33,20 @@ PACKAGES=(
     "telegram-desktop"
     "nwg-displays"
     "ffmpeg"
-    "dotnet"
     "docker"
     "vim"
     "neovim"
     "stow"
     "nautilus"
     "lazydocker"
+    "lazygit"
     "sublime-text-4"
     "bat"
     "fzf"
     "ripgrep" # added ripgrep
     "tree"      # Added tree
     "wget"      # Add wget
+    "dotnet-sdk"
 )
 
 DESKTOP_PACKAGES=(
@@ -62,7 +62,6 @@ FISH_PLUGINS=(
     "jhillyerd/plugin-git"
     "jethrokuan/z"
     "jorgebucaran/autopair.fish"
-    "francoiscariou/fish-foreign-env" # Add fish-foreign-env
 )
 
 # --- End Configuration ---
@@ -86,18 +85,14 @@ log_error() {
 
 is_installed() {
     local pkg="$1"
-    command -v "$pkg" &>/dev/null
+    pacman -Q "$pkg" &>/dev/null || yay -Q "$pkg" &>/dev/null
 }
 
 install_package() {
     local pkg="$1"
     if ! is_installed "$pkg"; then
         log_info "Installing $pkg..."
-        sudo pacman -S --noconfirm "$pkg"
-        if [ "$?" -ne 0 ]; then
-            log_error "Failed to install $pkg"
-            exit 1
-        fi
+        yay -S --noconfirm "$pkg"
     else
         log_info "$pkg is already installed, skipping."
     fi
@@ -118,13 +113,9 @@ set_default_shell() {
 }
 
 install_fisher() {
-    if ! is_installed "fisher"; then
+    if ! fish -c "type -q fisher"; then
         log_info "Installing fisher..."
-        curl -sL https://git.io/fisher | source && fish -c "fisher install jorgebucaran/fisher"
-        if [ "$?" -ne 0 ]; then
-            log_error "Failed to install fisher."
-            exit 1
-        fi
+        fish -c 'curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher'
     else
         log_info "Fisher is already installed, skipping."
     fi
@@ -135,10 +126,6 @@ install_fish_plugins() {
         if ! fish -c "fisher list | grep -q '$plugin'"; then
             log_info "Installing Fish plugin: $plugin"
             fish -c "fisher install $plugin"
-             if [ "$?" -ne 0 ]; then
-                log_error "Failed to install fish plugin: $plugin"
-                exit 1
-            fi
         else
             log_info "Fish plugin '$plugin' is already installed."
         fi
@@ -164,12 +151,10 @@ configure_git() {
 
 configure_fcitx5() {
     log_info "Setting up fcitx5..."
-
     # Install necessary packages
     for pkg in "${DESKTOP_PACKAGES[@]}"; do
         install_package "$pkg"
     done
-
     # Create config dir if it does not exist
     mkdir -p "$FISH_CONFIG_DIR"
 
@@ -178,12 +163,9 @@ configure_fcitx5() {
         log_info "Setting up environment variables for fcitx5 in Fish shell..."
         cat <<EOF >>"$FISH_CONFIG_FILE"
 # fcitx5 environment variables
-set -Ux GTK_IM_MODULE fcitx5
-set -Ux QT_IM_MODULE fcitx5
-set -Ux XMODIFIERS "@im=fcitx5"
-set -Ux SDL_IM_MODULE fcitx5
-set -Ux GLFW_IM_MODULE fcitx5
-set -Ux INPUT_METHOD fcitx5
+set XMODIFIERS=@im=fcitx
+set GTK_IM_MODULE=fcitx
+set QT_IM_MODULE=fcitx
 EOF
     else
         log_info "Environment variables for fcitx5 are already set in Fish shell, skipping."
@@ -198,84 +180,19 @@ EOF
     fi
 }
 
-
-
-configure_hyprland_binds() {
-    local file_path="$HYPR_CONFIG_FILE"
-    local ctrl_c_bind="bind = $MAIN_MOD,C,copy" # Changed to "copy"
-    local ctrl_v_bind="bind = $MAIN_MOD,V,paste" # Changed to "paste"
-    local ctrl_shift_c_bind="bind = CTRL SHIFT,C,exec,wl-copy"
-
-    if [ ! -f "$file_path" ]; then
-        log_warning "Hyprland configuration file not found at '$file_path'. Skipping keybind configuration."
-        return 1
-    fi
-
-    # Use check_hyprland_config function
-    if ! check_hyprland_config "$ctrl_c_bind"; then
-        log_info "Adding Hyprland bind: $ctrl_c_bind"
-        echo "$ctrl_c_bind" >>"$file_path"
-    else
-        log_info "Hyprland bind already exists: $ctrl_c_bind"
-    fi
-
-    if ! check_hyprland_config "$ctrl_v_bind"; then
-        log_info "Adding Hyprland bind: $ctrl_v_bind"
-        echo "$ctrl_v_bind" >>"$file_path"
-    else
-        log_info "Hyprland bind already exists: $ctrl_v_bind"
-    fi
-
-    if ! check_hyprland_config "$ctrl_shift_c_bind"; then
-        log_info "Adding Hyprland bind: $ctrl_shift_c_bind"
-        echo "$ctrl_shift_c_bind" >>"$file_path"
-    else
-        log_info "Hyprland bind already exists: $ctrl_shift_c_bind"
-    fi
-}
-
-# Function to check for existing Hyprland config lines
-check_hyprland_config() {
-    local config_line="$1"
-    local file_path="$HYPR_CONFIG_FILE"
-    grep -q "$config_line" "$file_path"
-}
-
-
 configure_warp_client() {
-    local warp_package="cloudflare-warp-bin" # Consistent variable
-    if ! is_installed "$warp_package"; then
-        install_package "$warp_package"
+    if ! is_installed "cloudflare-warp-bin"; then
+        install_package "cloudflare-warp-bin"
     fi
 
-    if is_installed "warp-cli"; then
-        log_info "Cloudflare WARP CLI tool found."
-        sudo systemctl enable --now warp-svc
-        if [ "$?" -ne 0 ]; then
-            log_error "Failed to enable and start warp-svc."
-            exit 1
-        fi
-        log_info "Registering Cloudflare WARP..."
-        warp-cli registration new
-         if [ "$?" -ne 0 ]; then
-            log_error "Failed to register WARP."
-            exit 1
-        fi
-        log_info "Connecting to Cloudflare WARP..."
-        warp-cli connect
-         if [ "$?" -ne 0 ]; then
-            log_error "Failed to connect to WARP."
-            exit 1
-        fi
-        if warp-cli status | grep -q "Status: Connected"; then # Corrected the grep
-            log_success "Cloudflare WARP connected successfully."
-        else
-            log_warning "Failed to connect to Cloudflare WARP. Check logs with 'journalctl -u warp-svc'."
-        fi
-    else
-        log_warning "warp-cli command not found. Ensure $warp_package is installed correctly."
-    fi
-}
+       
+    warp-cli registration delete || true
+    log_info "Registering Cloudflare WARP..."
+    warp-cli registration new
+    log_info "Connecting to Cloudflare WARP..."
+    warp-cli connect
+
+  }
 
 install_docker() {
     if is_installed "docker"; then
@@ -318,6 +235,21 @@ install_docker() {
     log_success "Docker installation verified."
 }
 
+install_nerdfont() {
+  # Kiểm tra xem font JetBrainsMono đã có trong thư mục fonts chưa
+  if fc-list | grep -i "JetBrainsMono" &>/dev/null; then
+    log_info "Font JetBrainsMono đã được cài đặt, bỏ qua."
+  else
+    log_info "Đang tải và cài đặt font JetBrainsMono..."
+    wget -P ~/.local/share/fonts https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/JetBrainsMono.zip \
+    && cd ~/.local/share/fonts \
+    && unzip JetBrainsMono.zip \
+    && rm JetBrainsMono.zip \
+    && fc-cache -fv
+
+    log_success "Đã cài đặt font JetBrainsMono thành công."
+  fi
+}
 
 # --- Main Script ---
 
@@ -345,23 +277,64 @@ install_fisher
 install_fish_plugins
 configure_git
 #configure_fcitx5
-#configure_hyprland_binds # Call the hyprland config function
+install_nerdfont
 configure_warp_client
 install_docker
 
-# Install gedit using snap
-if is_installed "snap"; then
-    log_info "Installing gedit via snap..."
-    sudo snap install gedit
-     if [ "$?" -ne 0 ]; then
-        log_error "Failed to install gedit via snap."
-        exit 1
-    fi
-else
-    log_warning "Snap is not installed.  Skipping gedit installation via snap."
-fi
 
-log_success "Setup completed!"
+
+safe_replace_in_file() {
+    local file="$1"
+    local old_line="$2"
+    local new_line="$3"
+
+    if grep -qF "$old_line" "$file"; then
+        sed -i "s|$old_line|$new_line|g" "$file"
+        echo "✅ Đã thay thế: $old_line"
+    else
+        echo "⚠️  Không tìm thấy dòng: $old_line"
+    fi
+}
+
+# Đường dẫn file
+file_keybindings="$HOME/.config/hypr/keybindings.conf"
+
+# Các chuỗi cũ và mới
+old_terminal='bindd = $mainMod, T, $d terminal emulator , exec, $TERMINAL'
+new_terminal='bindd = $mainMod, Return, $d terminal emulator , exec, $TERMINAL'
+
+old_file_explorer='bindd = $mainMod, E, $d file explorer , exec, $EXPLORER'
+new_file_explorer='bindd = $mainMod, E, $d file explorer , exec, nautilus'
+
+# Gọi hàm để thay thế
+safe_replace_in_file "$file_keybindings" "$old_terminal" "$new_terminal"
+safe_replace_in_file "$file_keybindings" "$old_file_explorer" "$new_file_explorer"
+
+add_fcitx_env_to_bashrc() {
+    local BASHRC="$HOME/.bashrc"
+    local BASH_PROFILE="$HOME/.bash_profile"
+
+    # Thêm các biến môi trường nếu chưa tồn tại trong ~/.bashrc
+    if ! grep -q "export XMODIFIERS=@im=fcitx" "$BASHRC"; then
+        echo ">> Adding fcitx5 environment variables to ~/.bashrc..."
+        cat <<EOF >> "$BASHRC"
+
+# fcitx5 environment variables
+export XMODIFIERS=@im=fcitx
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
+EOF
+    else
+        echo ">> fcitx5 environment variables already exist in ~/.bashrc, skipping."
+    fi
+
+    # Đảm bảo ~/.bash_profile có gọi ~/.bashrc
+    if [ -f "$BASH_PROFILE" ] && ! grep -q "source ~/.bashrc" "$BASH_PROFILE"; then
+        echo '[[ -f ~/.bashrc ]] && source ~/.bashrc' >> "$BASH_PROFILE"
+        echo ">> Linked ~/.bashrc from ~/.bash_profile"
+    fi
+}
+
+add_fcitx_env_to_bashrc
 
 # --- End Main Script ---
-
