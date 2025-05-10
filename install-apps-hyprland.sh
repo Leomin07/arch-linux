@@ -149,6 +149,42 @@ configure_git() {
     fi
 }
 
+# configure_fcitx5() {
+#     log_info "Setting up fcitx5..."
+#     # Install necessary packages
+#     for pkg in "${DESKTOP_PACKAGES[@]}"; do
+#         install_package "$pkg"
+#     done
+#     # Create config dir if it does not exist
+#     mkdir -p "$FISH_CONFIG_DIR"
+
+#     # --- Fish shell ---
+#     if ! grep -q 'set -gx XMODIFIERS "@im=fcitx"' "$FISH_CONFIG_FILE" || \
+#        ! grep -q 'set -gx GTK_IM_MODULE "fcitx"' "$FISH_CONFIG_FILE" || \
+#        ! grep -q 'set -gx QT_IM_MODULE "fcitx"' "$FISH_CONFIG_FILE"; then
+
+#         log_info "Setting up environment variables for fcitx5 in Fish shell..."
+#         cat <<EOF >>"$FISH_CONFIG_FILE"
+# # fcitx5 environment variables
+# set -gx XMODIFIERS "@im=fcitx"
+# set -gx GTK_IM_MODULE "fcitx"
+# set -gx QT_IM_MODULE "fcitx"
+# EOF
+
+#     else
+#         log_info "Environment variables for fcitx5 are already set in Fish shell, skipping."
+#     fi
+
+
+#     # Add fcitx5 to Hyprland autostart, check if the line exists
+#      if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
+#         log_info "Adding fcitx5 to Hyprland autostart..."
+#         echo "exec-once = fcitx5 -d" >>"$HYPR_CONFIG_FILE"
+#     else
+#         log_info "fcitx5 is already in Hyprland autostart, skipping."
+#     fi
+# }
+
 configure_fcitx5() {
     log_info "Setting up fcitx5..."
     # Install necessary packages
@@ -157,20 +193,19 @@ configure_fcitx5() {
     done
     # Create config dir if it does not exist
     mkdir -p "$FISH_CONFIG_DIR"
-
     # Set environment variables in Fish shell, check if the line exists
     if ! grep -q "set -Ux GTK_IM_MODULE fcitx5" "$FISH_CONFIG_FILE"; then
         log_info "Setting up environment variables for fcitx5 in Fish shell..."
         cat <<EOF >>"$FISH_CONFIG_FILE"
 # fcitx5 environment variables
-set XMODIFIERS=@im=fcitx
-set GTK_IM_MODULE=fcitx
-set QT_IM_MODULE=fcitx
+set -gx GTK_IM_MODULE fcitx5
+set -gx QT_IM_MODULE fcitx5
+set -gx XMODIFIERS "@im=fcitx5"
+
 EOF
     else
         log_info "Environment variables for fcitx5 are already set in Fish shell, skipping."
     fi
-
     # Add fcitx5 to Hyprland autostart, check if the line exists
      if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
         log_info "Adding fcitx5 to Hyprland autostart..."
@@ -185,14 +220,54 @@ configure_warp_client() {
         install_package "cloudflare-warp-bin"
     fi
 
-       
-    warp-cli registration delete || true
-    log_info "Registering Cloudflare WARP..."
-    warp-cli registration new
-    log_info "Connecting to Cloudflare WARP..."
-    warp-cli connect
+    sudo systemctl enable --now warp-svc
 
-  }
+    log_info "Đăng ký Cloudflare WARP..."
+    warp-cli registration new
+
+    log_info "Kết nối Cloudflare WARP..."
+    warp-cli connect
+    warp-cli dns families off
+
+}
+
+# configure_warp_client() {
+#     local warp_package="cloudflare-warp-bin" # Consistent variable
+#     if ! is_installed "$warp_package"; then
+#         install_package "$warp_package"
+#     fi
+
+#     if is_installed "warp-cli"; then
+#         log_info "Cloudflare WARP CLI tool found."
+#         sudo systemctl enable --now warp-svc
+#         if [ "$?" -ne 0 ]; then
+#             log_error "Failed to enable and start warp-svc."
+#             exit 1
+#         fi
+#         log_info "Registering Cloudflare WARP..."
+#         warp-cli registration new
+#          if [ "$?" -ne 0 ]; then
+#             log_error "Failed to register WARP."
+#             exit 1
+#         fi
+#         log_info "Connecting to Cloudflare WARP..."
+#         warp-cli connect
+#          if [ "$?" -ne 0 ]; then
+#             log_error "Failed to connect to WARP."
+#             exit 1
+#         fi
+#         if warp-cli status | grep -q "Status: Connected"; then # Corrected the grep
+#             log_success "Cloudflare WARP connected successfully."
+#         else
+#             log_warning "Failed to connect to Cloudflare WARP. Check logs with 'journalctl -u warp-svc'."
+#         fi
+#     else
+#         log_warning "warp-cli command not found. Ensure $warp_package is installed correctly."
+#     fi
+# }
+
+
+
 
 install_docker() {
     if is_installed "docker"; then
@@ -276,7 +351,7 @@ set_default_shell
 install_fisher
 install_fish_plugins
 configure_git
-#configure_fcitx5
+configure_fcitx5
 install_nerdfont
 configure_warp_client
 install_docker
