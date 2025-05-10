@@ -22,18 +22,6 @@ rm -rf yay-bin
 
 yay --version
 
-sudo pacman -S stow
-
-# Install snap store
-git clone https://aur.archlinux.org/snapd.git
-cd snapd
-makepkg -si
-
-sudo systemctl enable --now snapd.socket
-sudo systemctl enable --now snapd.apparmor.servic
-sudo ln -s /var/lib/snapd/snap /sn
-
-
 yay -S ml4w-hyprland
 
 ml4w-hyprland-setup
