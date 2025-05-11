@@ -23,29 +23,32 @@ MAIN_MOD="SUPER" # Assuming SUPER key for Hyprland binds
 
 PACKAGES=(
     "google-chrome"
+    "etcher-bin"
     "postman"
     "dbeaver"
     "mongodb-compass"
+    "tableplus"
     "fish"
     "python"
+    "python-pip"
     "nodejs"
     "yarn"
+    "npm"
     "telegram-desktop"
-    "nwg-displays"
+    #"nwg-displays"
     "ffmpeg"
-    "docker"
     "vim"
     "neovim"
     "stow"
-    "nautilus"
+    #"nautilus"
     "lazydocker"
-    "lazygit"
-    "sublime-text-3"
+    #"lazygit"
+    #"sublime-text-3"
     "bat"
     "fzf"
     "ripgrep" # added ripgrep
-    "tree"      # Added tree
-    "wget"      # Add wget
+    "tree"    # Added tree
+    "wget"    # Add wget
     "dotnet-sdk"
 )
 
@@ -175,7 +178,36 @@ configure_git() {
 #         log_info "Environment variables for fcitx5 are already set in Fish shell, skipping."
 #     fi
 
+#     # Add fcitx5 to Hyprland autostart, check if the line exists
+#      if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
+#         log_info "Adding fcitx5 to Hyprland autostart..."
+#         echo "exec-once = fcitx5 -d" >>"$HYPR_CONFIG_FILE"
+#     else
+#         log_info "fcitx5 is already in Hyprland autostart, skipping."
+#     fi
+# }
 
+# configure_fcitx5() {
+#     log_info "Setting up fcitx5..."
+#     # Install necessary packages
+#     for pkg in "${DESKTOP_PACKAGES[@]}"; do
+#         install_package "$pkg"
+#     done
+#     # Create config dir if it does not exist
+#     mkdir -p "$FISH_CONFIG_DIR"
+#     # Set environment variables in Fish shell, check if the line exists
+#     if ! grep -q "set -Ux GTK_IM_MODULE fcitx5" "$FISH_CONFIG_FILE"; then
+#         log_info "Setting up environment variables for fcitx5 in Fish shell..."
+#         cat <<EOF >>"$FISH_CONFIG_FILE"
+# # fcitx5 environment variables
+# set -gx GTK_IM_MODULE fcitx5
+# set -gx QT_IM_MODULE fcitx5
+# set -gx XMODIFIERS "@im=fcitx5"
+
+# EOF
+#     else
+#         log_info "Environment variables for fcitx5 are already set in Fish shell, skipping."
+#     fi
 #     # Add fcitx5 to Hyprland autostart, check if the line exists
 #      if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
 #         log_info "Adding fcitx5 to Hyprland autostart..."
@@ -187,27 +219,45 @@ configure_git() {
 
 configure_fcitx5() {
     log_info "Setting up fcitx5..."
+
     # Install necessary packages
     for pkg in "${DESKTOP_PACKAGES[@]}"; do
         install_package "$pkg"
     done
-    # Create config dir if it does not exist
-    mkdir -p "$FISH_CONFIG_DIR"
-    # Set environment variables in Fish shell, check if the line exists
-    if ! grep -q "set -Ux GTK_IM_MODULE fcitx5" "$FISH_CONFIG_FILE"; then
-        log_info "Setting up environment variables for fcitx5 in Fish shell..."
-        cat <<EOF >>"$FISH_CONFIG_FILE"
-# fcitx5 environment variables
-set -gx GTK_IM_MODULE fcitx5
-set -gx QT_IM_MODULE fcitx5
-set -gx XMODIFIERS "@im=fcitx5"
 
+    # Create config dir if it does not exist (thay đổi nhỏ: tạo thư mục trước khi kiểm tra file)
+    mkdir -p "$FISH_CONFIG_DIR"
+
+    # Set environment variables in Fish shell, kiểm tra từng dòng
+    config_file="$FISH_CONFIG_FILE" # Đưa vào biến để dùng lại
+    env_vars=(
+        "set -gx GTK_IM_MODULE fcitx5"
+        "set -gx QT_IM_MODULE fcitx5"
+        "set -gx XMODIFIERS \"@im=fcitx5\""
+    )
+    all_exist=true # Giả sử tất cả đều tồn tại
+
+    for var in "${env_vars[@]}"; do
+        if ! grep -q "$var" "$config_file"; then
+            all_exist=false # Phát hiện thiếu
+            break           # Thoát sớm khi thiếu
+        fi
+    done
+
+    if ! $all_exist; then # Kiểm tra sau vòng lặp
+        log_info "Setting up environment variables for fcitx5 in Fish shell..."
+        cat <<EOF >>"$config_file"
+# fcitx5 environment variables
+${env_vars[0]}
+${env_vars[1]}
+${env_vars[2]}
 EOF
     else
         log_info "Environment variables for fcitx5 are already set in Fish shell, skipping."
     fi
+
     # Add fcitx5 to Hyprland autostart, check if the line exists
-     if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
+    if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
         log_info "Adding fcitx5 to Hyprland autostart..."
         echo "exec-once = fcitx5 -d" >>"$HYPR_CONFIG_FILE"
     else
@@ -266,9 +316,6 @@ configure_warp_client() {
 #     fi
 # }
 
-
-
-
 install_docker() {
     if is_installed "docker"; then
         log_info "Docker is already installed. Skipping installation."
@@ -277,24 +324,23 @@ install_docker() {
 
     log_info "Installing Docker..."
     sudo pacman -S --noconfirm docker docker-compose # Install docker-compose
-     if [ "$?" -ne 0 ]; then
+    if [ "$?" -ne 0 ]; then
         log_error "Failed to install Docker."
         exit 1
     fi
 
     log_info "Enabling and starting Docker service..."
     sudo systemctl start docker.service
-    
+
     sudo systemctl enable docker.service
-     if [ "$?" -ne 0 ]; then
+    if [ "$?" -ne 0 ]; then
         log_error "Failed to enable docker service."
         exit 1
     fi
 
-    
     log_info "Adding current user to docker group..."
     sudo usermod -aG docker "$USER"
-     if [ "$?" -ne 0 ]; then
+    if [ "$?" -ne 0 ]; then
         log_error "Failed to add user to docker group.  You may need to log out and back in."
         exit 1
     fi
@@ -303,7 +349,7 @@ install_docker() {
 
     log_info "Verifying Docker installation..."
     sudo docker run hello-world
-     if [ "$?" -ne 0 ]; then
+    if [ "$?" -ne 0 ]; then
         log_error "Docker test failed. Try restarting or checking system logs."
         exit 1
     fi
@@ -311,33 +357,47 @@ install_docker() {
 }
 
 install_nerdfont() {
-  # Kiểm tra xem font JetBrainsMono đã có trong thư mục fonts chưa
-  if fc-list | grep -i "JetBrainsMono" &>/dev/null; then
-    log_info "Font JetBrainsMono đã được cài đặt, bỏ qua."
-  else
-    log_info "Đang tải và cài đặt font JetBrainsMono..."
-    wget -P ~/.local/share/fonts https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/JetBrainsMono.zip \
-    && cd ~/.local/share/fonts \
-    && unzip JetBrainsMono.zip \
-    && rm JetBrainsMono.zip \
-    && fc-cache -fv
+    # Kiểm tra xem font JetBrainsMono đã có trong thư mục fonts chưa
+    if fc-list | grep -i "JetBrainsMono" &>/dev/null; then
+        log_info "Font JetBrainsMono đã được cài đặt, bỏ qua."
+    else
+        log_info "Đang tải và cài đặt font JetBrainsMono..."
+        wget -P ~/.local/share/fonts https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/JetBrainsMono.zip &&
+            cd ~/.local/share/fonts &&
+            unzip JetBrainsMono.zip &&
+            rm JetBrainsMono.zip &&
+            fc-cache -fv
 
-    log_success "Đã cài đặt font JetBrainsMono thành công."
-  fi
+        log_success "Đã cài đặt font JetBrainsMono thành công."
+    fi
 }
 
 # --- Main Script ---
 
+# Check if yay is installed, and install it if it's not
+if ! is_installed "yay"; then
+    log_info "Installing yay..."
+    sudo pacman -S --noconfirm --needed git base-devel
+    git clone https://aur.archlinux.org/yay.git
+    cd yay
+    makepkg -si --noconfirm
+    cd ..
+    rm -rf yay
+    log_success "yay installed successfully."
+else
+    log_info "yay is already installed."
+fi
+
 log_info "Setting timezone to $TIMEZONE"
 sudo timedatectl set-timezone "$TIMEZONE"
- if [ "$?" -ne 0 ]; then
+if [ "$?" -ne 0 ]; then
     log_error "Failed to set timezone."
     exit 1
 fi
 
 log_info "Updating system..."
 sudo pacman -Syu --noconfirm
- if [ "$?" -ne 0 ]; then
+if [ "$?" -ne 0 ]; then
     log_error "Failed to update system."
     exit 1
 fi
@@ -346,6 +406,14 @@ fi
 for pkg in "${PACKAGES[@]}"; do
     install_package "$pkg"
 done
+
+config_bluetooth() {
+    sudo pacman -S --noconfirm bluez
+
+    sudo pacman -S --noconfirm bluez-utils
+
+    sudo systemctl enable bluetooth.service
+}
 
 set_default_shell
 install_fisher
@@ -356,34 +424,40 @@ install_nerdfont
 configure_warp_client
 install_docker
 
+replace_hotkey_hyde() {
 
+    safe_replace_in_file() {
+        local file="$1"
+        local old_line="$2"
+        local new_line="$3"
 
-safe_replace_in_file() {
-    local file="$1"
-    local old_line="$2"
-    local new_line="$3"
+        if grep -qF "$old_line" "$file"; then
+            sed -i "s|$old_line|$new_line|g" "$file"
+            echo "✅ Đã thay thế: $old_line"
+        else
+            echo "⚠️  Không tìm thấy dòng: $old_line"
+        fi
+    }
 
-    if grep -qF "$old_line" "$file"; then
-        sed -i "s|$old_line|$new_line|g" "$file"
-        echo "✅ Đã thay thế: $old_line"
-    else
-        echo "⚠️  Không tìm thấy dòng: $old_line"
-    fi
+    # Đường dẫn file
+    file_keybindings="$HOME/.config/hypr/keybindings.conf"
+
+    # Các chuỗi cũ và mới
+    old_terminal='bindd = $mainMod, T, $d terminal emulator , exec, $TERMINAL'
+    new_terminal='bindd = $mainMod, Return, $d terminal emulator , exec, $TERMINAL'
+
+    old_file_explorer='bindd = $mainMod, E, $d file explorer , exec, $EXPLORER'
+    new_file_explorer='bindd = $mainMod, E, $d file explorer , exec, nautilus'
+
+    old_editor='bindd = $mainMod, C, $d text editor , exec, $EDITOR'
+    new_editor='bindd = $mainMod, C, $d text editor , exec, code'
+
+    # Gọi hàm để thay thế
+    safe_replace_in_file "$file_keybindings" "$old_terminal" "$new_terminal"
+    safe_replace_in_file "$file_keybindings" "$old_file_explorer" "$new_file_explorer"
+    safe_replace_in_file "$file_keybindings" "$old_editor" "$new_editor"
+
 }
-
-# Đường dẫn file
-file_keybindings="$HOME/.config/hypr/keybindings.conf"
-
-# Các chuỗi cũ và mới
-old_terminal='bindd = $mainMod, T, $d terminal emulator , exec, $TERMINAL'
-new_terminal='bindd = $mainMod, Return, $d terminal emulator , exec, $TERMINAL'
-
-old_file_explorer='bindd = $mainMod, E, $d file explorer , exec, $EXPLORER'
-new_file_explorer='bindd = $mainMod, E, $d file explorer , exec, nautilus'
-
-# Gọi hàm để thay thế
-safe_replace_in_file "$file_keybindings" "$old_terminal" "$new_terminal"
-safe_replace_in_file "$file_keybindings" "$old_file_explorer" "$new_file_explorer"
 
 add_fcitx_env_to_bashrc() {
     local BASHRC="$HOME/.bashrc"
@@ -392,7 +466,7 @@ add_fcitx_env_to_bashrc() {
     # Thêm các biến môi trường nếu chưa tồn tại trong ~/.bashrc
     if ! grep -q "export XMODIFIERS=@im=fcitx" "$BASHRC"; then
         echo ">> Adding fcitx5 environment variables to ~/.bashrc..."
-        cat <<EOF >> "$BASHRC"
+        cat <<EOF >>"$BASHRC"
 
 # fcitx5 environment variables
 export XMODIFIERS=@im=fcitx
@@ -405,7 +479,7 @@ EOF
 
     # Đảm bảo ~/.bash_profile có gọi ~/.bashrc
     if [ -f "$BASH_PROFILE" ] && ! grep -q "source ~/.bashrc" "$BASH_PROFILE"; then
-        echo '[[ -f ~/.bashrc ]] && source ~/.bashrc' >> "$BASH_PROFILE"
+        echo '[[ -f ~/.bashrc ]] && source ~/.bashrc' >>"$BASH_PROFILE"
         echo ">> Linked ~/.bashrc from ~/.bash_profile"
     fi
 }
