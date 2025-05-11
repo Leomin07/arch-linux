@@ -40,7 +40,7 @@ PACKAGES=(
     "nautilus"
     "lazydocker"
     "lazygit"
-    "sublime-text-4"
+    "sublime-text-3"
     "bat"
     "fzf"
     "ripgrep" # added ripgrep
