@@ -28,12 +28,15 @@ PACKAGES=(
     "mongodb-compass"
     "fish"
     "python"
+    "python-pip"
     "nodejs"
     "yarn"
+    "npm"
     "telegram-desktop"
     "nwg-displays"
     "ffmpeg"
     "docker"
+    "docker-compose"
     "vim"
     "neovim"
     "stow"
@@ -185,35 +188,84 @@ configure_git() {
 #     fi
 # }
 
+# configure_fcitx5() {
+#     log_info "Setting up fcitx5..."
+#     # Install necessary packages
+#     for pkg in "${DESKTOP_PACKAGES[@]}"; do
+#         install_package "$pkg"
+#     done
+#     # Create config dir if it does not exist
+#     mkdir -p "$FISH_CONFIG_DIR"
+#     # Set environment variables in Fish shell, check if the line exists
+#     if ! grep -q "set -Ux GTK_IM_MODULE fcitx5" "$FISH_CONFIG_FILE"; then
+#         log_info "Setting up environment variables for fcitx5 in Fish shell..."
+#         cat <<EOF >>"$FISH_CONFIG_FILE"
+# # fcitx5 environment variables
+# set -gx GTK_IM_MODULE fcitx5
+# set -gx QT_IM_MODULE fcitx5
+# set -gx XMODIFIERS "@im=fcitx5"
+
+# EOF
+#     else
+#         log_info "Environment variables for fcitx5 are already set in Fish shell, skipping."
+#     fi
+#     # Add fcitx5 to Hyprland autostart, check if the line exists
+#      if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
+#         log_info "Adding fcitx5 to Hyprland autostart..."
+#         echo "exec-once = fcitx5 -d" >>"$HYPR_CONFIG_FILE"
+#     else
+#         log_info "fcitx5 is already in Hyprland autostart, skipping."
+#     fi
+# }
+
 configure_fcitx5() {
     log_info "Setting up fcitx5..."
+
     # Install necessary packages
     for pkg in "${DESKTOP_PACKAGES[@]}"; do
         install_package "$pkg"
     done
-    # Create config dir if it does not exist
-    mkdir -p "$FISH_CONFIG_DIR"
-    # Set environment variables in Fish shell, check if the line exists
-    if ! grep -q "set -Ux GTK_IM_MODULE fcitx5" "$FISH_CONFIG_FILE"; then
-        log_info "Setting up environment variables for fcitx5 in Fish shell..."
-        cat <<EOF >>"$FISH_CONFIG_FILE"
-# fcitx5 environment variables
-set -gx GTK_IM_MODULE fcitx5
-set -gx QT_IM_MODULE fcitx5
-set -gx XMODIFIERS "@im=fcitx5"
 
+    # Create config dir if it does not exist (thay đổi nhỏ: tạo thư mục trước khi kiểm tra file)
+    mkdir -p "$FISH_CONFIG_DIR"
+
+    # Set environment variables in Fish shell, kiểm tra từng dòng
+    config_file="$FISH_CONFIG_FILE" # Đưa vào biến để dùng lại
+    env_vars=(
+        "set -gx GTK_IM_MODULE fcitx5"
+        "set -gx QT_IM_MODULE fcitx5"
+        "set -gx XMODIFIERS \"@im=fcitx5\""
+    )
+    all_exist=true # Giả sử tất cả đều tồn tại
+
+    for var in "${env_vars[@]}"; do
+        if ! grep -q "$var" "$config_file"; then
+            all_exist=false # Phát hiện thiếu
+            break # Thoát sớm khi thiếu
+        fi
+    done
+
+    if ! $all_exist; then # Kiểm tra sau vòng lặp
+        log_info "Setting up environment variables for fcitx5 in Fish shell..."
+        cat <<EOF >>"$config_file"
+# fcitx5 environment variables
+${env_vars[0]}
+${env_vars[1]}
+${env_vars[2]}
 EOF
     else
         log_info "Environment variables for fcitx5 are already set in Fish shell, skipping."
     fi
+
     # Add fcitx5 to Hyprland autostart, check if the line exists
-     if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
+    if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
         log_info "Adding fcitx5 to Hyprland autostart..."
         echo "exec-once = fcitx5 -d" >>"$HYPR_CONFIG_FILE"
     else
         log_info "fcitx5 is already in Hyprland autostart, skipping."
     fi
 }
+
 
 configure_warp_client() {
     if ! is_installed "cloudflare-warp-bin"; then
@@ -353,7 +405,7 @@ install_fish_plugins
 configure_git
 configure_fcitx5
 install_nerdfont
-configure_warp_client
+#configure_warp_client
 install_docker
 
 
@@ -381,9 +433,13 @@ new_terminal='bindd = $mainMod, Return, $d terminal emulator , exec, $TERMINAL'
 old_file_explorer='bindd = $mainMod, E, $d file explorer , exec, $EXPLORER'
 new_file_explorer='bindd = $mainMod, E, $d file explorer , exec, nautilus'
 
+old_editor='bindd = $mainMod, C, $d text editor , exec, $EDITOR'
+new_editor='bindd = $mainMod, C, $d text editor , exec, code'
+
 # Gọi hàm để thay thế
 safe_replace_in_file "$file_keybindings" "$old_terminal" "$new_terminal"
 safe_replace_in_file "$file_keybindings" "$old_file_explorer" "$new_file_explorer"
+safe_replace_in_file "$file_keybindings" "$old_editor" "$new_editor"
 
 add_fcitx_env_to_bashrc() {
     local BASHRC="$HOME/.bashrc"

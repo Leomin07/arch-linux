@@ -17,3 +17,9 @@ sudo nano /usr/share/applications/google-chrome.desktop
 ```
 Exec=/usr/bin/google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime %U
 ```
+
+### Virtual Machine Manager
+```
+sudo apt isntall ssh-askpass virt-manager
+```
+
