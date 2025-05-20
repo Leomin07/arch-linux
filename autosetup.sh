@@ -26,7 +26,8 @@ PACKAGES=(
     "etcher-bin"
     "postman"
     "dbeaver"
-    "mongodb-compass"
+    #"mongodb-compass"
+    "tableplus"
     "tableplus"
     "fish"
     "python"
@@ -44,6 +45,7 @@ PACKAGES=(
     "lazydocker"
     #"lazygit"
     #"sublime-text-3"
+    "ttf-jetbrains-mono-nerd"
     "bat"
     "fzf"
     "ripgrep" # added ripgrep
@@ -419,9 +421,9 @@ set_default_shell
 install_fisher
 install_fish_plugins
 configure_git
-configure_fcitx5
-install_nerdfont
-configure_warp_client
+#configure_fcitx5
+#install_nerdfont
+#configure_warp_client
 install_docker
 
 replace_hotkey_hyde() {
@@ -484,6 +486,7 @@ EOF
     fi
 }
 
-add_fcitx_env_to_bashrc
+
+#add_fcitx_env_to_bashrc
 
 # --- End Main Script ---
