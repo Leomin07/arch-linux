@@ -23,3 +23,12 @@ Exec=/usr/bin/google-chrome-stable --enable-features=UseOzonePlatform --ozone-pl
 sudo apt isntall ssh-askpass virt-manager
 ```
 
+### Dump setting extensions
+ - Dump
+```
+dconf dump /org/gnome/shell/extensions/ > dump_extensions.txt
+```
+ - Load file
+```
+dconf load /org/gnome/shell/extensions/ < dump_extensions.txt
+```
