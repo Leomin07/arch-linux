@@ -22,36 +22,40 @@ HYPR_CONFIG_FILE="$HYPR_CONFIG_DIR/hyprland.conf"
 MAIN_MOD="SUPER" # Assuming SUPER key for Hyprland binds
 
 PACKAGES=(
-    "google-chrome"
-    "etcher-bin"
-    "postman"
-    "dbeaver"
-    #"mongodb-compass"
-    "tableplus"
-    "tableplus"
-    "fish"
     "python"
     "python-pip"
     "nodejs"
     "yarn"
     "npm"
-    "telegram-desktop"
-    #"nwg-displays"
+    "fish"
     "ffmpeg"
     "vim"
     "neovim"
     "stow"
-    #"nautilus"
-    "lazydocker"
-    #"lazygit"
-    #"sublime-text-3"
-    "ttf-jetbrains-mono-nerd"
     "bat"
     "fzf"
-    "ripgrep" # added ripgrep
-    "tree"    # Added tree
-    "wget"    # Add wget
+    "tree"
     "dotnet-sdk"
+    "mpv"
+    "google-chrome"
+    "brave-bin"
+    "etcher-bin"
+    "postman"
+    "dbeaver"
+    "visual-studio-code-bin"
+    #"mongodb-compass"
+    "tableplus"
+    "telegram-desktop"
+    #"nwg-displays"
+    #"nautilus"
+    "lazydocker"
+    "ttf-jetbrains-mono-nerd"
+    "noto-fonts-cjk"
+    "noto-fonts"
+    "ttf-dejavu"
+    "ttf-liberation"
+    "kitty"
+    "alacritty"
 )
 
 DESKTOP_PACKAGES=(
@@ -154,169 +158,21 @@ configure_git() {
     fi
 }
 
-# configure_fcitx5() {
-#     log_info "Setting up fcitx5..."
-#     # Install necessary packages
-#     for pkg in "${DESKTOP_PACKAGES[@]}"; do
-#         install_package "$pkg"
-#     done
-#     # Create config dir if it does not exist
-#     mkdir -p "$FISH_CONFIG_DIR"
-
-#     # --- Fish shell ---
-#     if ! grep -q 'set -gx XMODIFIERS "@im=fcitx"' "$FISH_CONFIG_FILE" || \
-#        ! grep -q 'set -gx GTK_IM_MODULE "fcitx"' "$FISH_CONFIG_FILE" || \
-#        ! grep -q 'set -gx QT_IM_MODULE "fcitx"' "$FISH_CONFIG_FILE"; then
-
-#         log_info "Setting up environment variables for fcitx5 in Fish shell..."
-#         cat <<EOF >>"$FISH_CONFIG_FILE"
-# # fcitx5 environment variables
-# set -gx XMODIFIERS "@im=fcitx"
-# set -gx GTK_IM_MODULE "fcitx"
-# set -gx QT_IM_MODULE "fcitx"
-# EOF
-
-#     else
-#         log_info "Environment variables for fcitx5 are already set in Fish shell, skipping."
-#     fi
-
-#     # Add fcitx5 to Hyprland autostart, check if the line exists
-#      if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
-#         log_info "Adding fcitx5 to Hyprland autostart..."
-#         echo "exec-once = fcitx5 -d" >>"$HYPR_CONFIG_FILE"
-#     else
-#         log_info "fcitx5 is already in Hyprland autostart, skipping."
-#     fi
-# }
-
-# configure_fcitx5() {
-#     log_info "Setting up fcitx5..."
-#     # Install necessary packages
-#     for pkg in "${DESKTOP_PACKAGES[@]}"; do
-#         install_package "$pkg"
-#     done
-#     # Create config dir if it does not exist
-#     mkdir -p "$FISH_CONFIG_DIR"
-#     # Set environment variables in Fish shell, check if the line exists
-#     if ! grep -q "set -Ux GTK_IM_MODULE fcitx5" "$FISH_CONFIG_FILE"; then
-#         log_info "Setting up environment variables for fcitx5 in Fish shell..."
-#         cat <<EOF >>"$FISH_CONFIG_FILE"
-# # fcitx5 environment variables
-# set -gx GTK_IM_MODULE fcitx5
-# set -gx QT_IM_MODULE fcitx5
-# set -gx XMODIFIERS "@im=fcitx5"
-
-# EOF
-#     else
-#         log_info "Environment variables for fcitx5 are already set in Fish shell, skipping."
-#     fi
-#     # Add fcitx5 to Hyprland autostart, check if the line exists
-#      if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
-#         log_info "Adding fcitx5 to Hyprland autostart..."
-#         echo "exec-once = fcitx5 -d" >>"$HYPR_CONFIG_FILE"
-#     else
-#         log_info "fcitx5 is already in Hyprland autostart, skipping."
-#     fi
-# }
-
-configure_fcitx5() {
-    log_info "Setting up fcitx5..."
-
-    # Install necessary packages
-    for pkg in "${DESKTOP_PACKAGES[@]}"; do
-        install_package "$pkg"
-    done
-
-    # Create config dir if it does not exist (thay đổi nhỏ: tạo thư mục trước khi kiểm tra file)
-    mkdir -p "$FISH_CONFIG_DIR"
-
-    # Set environment variables in Fish shell, kiểm tra từng dòng
-    config_file="$FISH_CONFIG_FILE" # Đưa vào biến để dùng lại
-    env_vars=(
-        "set -gx GTK_IM_MODULE fcitx5"
-        "set -gx QT_IM_MODULE fcitx5"
-        "set -gx XMODIFIERS \"@im=fcitx5\""
-    )
-    all_exist=true # Giả sử tất cả đều tồn tại
-
-    for var in "${env_vars[@]}"; do
-        if ! grep -q "$var" "$config_file"; then
-            all_exist=false # Phát hiện thiếu
-            break           # Thoát sớm khi thiếu
-        fi
-    done
-
-    if ! $all_exist; then # Kiểm tra sau vòng lặp
-        log_info "Setting up environment variables for fcitx5 in Fish shell..."
-        cat <<EOF >>"$config_file"
-# fcitx5 environment variables
-${env_vars[0]}
-${env_vars[1]}
-${env_vars[2]}
-EOF
-    else
-        log_info "Environment variables for fcitx5 are already set in Fish shell, skipping."
-    fi
-
-    # Add fcitx5 to Hyprland autostart, check if the line exists
-    if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
-        log_info "Adding fcitx5 to Hyprland autostart..."
-        echo "exec-once = fcitx5 -d" >>"$HYPR_CONFIG_FILE"
-    else
-        log_info "fcitx5 is already in Hyprland autostart, skipping."
-    fi
-}
-
 configure_warp_client() {
     if ! is_installed "cloudflare-warp-bin"; then
         install_package "cloudflare-warp-bin"
     fi
 
-    sudo systemctl enable --now warp-svc
+    #sudo systemctl enable --now warp-svc
 
     log_info "Đăng ký Cloudflare WARP..."
     warp-cli registration new
 
     log_info "Kết nối Cloudflare WARP..."
     warp-cli connect
-    warp-cli dns families off
+    #warp-cli dns families off
 
 }
-
-# configure_warp_client() {
-#     local warp_package="cloudflare-warp-bin" # Consistent variable
-#     if ! is_installed "$warp_package"; then
-#         install_package "$warp_package"
-#     fi
-
-#     if is_installed "warp-cli"; then
-#         log_info "Cloudflare WARP CLI tool found."
-#         sudo systemctl enable --now warp-svc
-#         if [ "$?" -ne 0 ]; then
-#             log_error "Failed to enable and start warp-svc."
-#             exit 1
-#         fi
-#         log_info "Registering Cloudflare WARP..."
-#         warp-cli registration new
-#          if [ "$?" -ne 0 ]; then
-#             log_error "Failed to register WARP."
-#             exit 1
-#         fi
-#         log_info "Connecting to Cloudflare WARP..."
-#         warp-cli connect
-#          if [ "$?" -ne 0 ]; then
-#             log_error "Failed to connect to WARP."
-#             exit 1
-#         fi
-#         if warp-cli status | grep -q "Status: Connected"; then # Corrected the grep
-#             log_success "Cloudflare WARP connected successfully."
-#         else
-#             log_warning "Failed to connect to Cloudflare WARP. Check logs with 'journalctl -u warp-svc'."
-#         fi
-#     else
-#         log_warning "warp-cli command not found. Ensure $warp_package is installed correctly."
-#     fi
-# }
 
 install_docker() {
     if is_installed "docker"; then
@@ -374,6 +230,355 @@ install_nerdfont() {
     fi
 }
 
+# Sets up Hyprland configurations.
+setup_hyde() {
+    # Safely replaces a line in a file if it exists.
+    safe_replace_in_file() {
+        local file="$1"
+        local old_line="$2"
+        local new_line="$3"
+
+        if grep -qF "$old_line" "$file"; then
+            sed -i "s|$old_line|$new_line|g" "$file"
+            log_success "Đã thay thế: $old_line"
+        else
+            log_warning "Không tìm thấy dòng: $old_line"
+        fi
+    }
+
+    log_info "Configuring Hyprland keybindings..."
+    local file_keybindings="$HOME/.config/hypr/keybindings.conf"
+
+    # Old and new strings for replacement
+    local old_terminal='bindd = $mainMod, T, $d terminal emulator , exec, $TERMINAL'
+    local new_terminal='bindd = $mainMod, Return, $d terminal emulator , exec, $TERMINAL'
+
+    local old_file_explorer='bindd = $mainMod, E, $d file explorer , exec, $EXPLORER'
+    local new_file_explorer='bindd = $mainMod, E, $d file explorer , exec, nautilus'
+
+    local old_editor='bindd = $mainMod, C, $d text editor , exec, $EDITOR'
+    local new_editor='bindd = $mainMod, C, $d text editor , exec, code'
+
+    # Call function to replace
+    safe_replace_in_file "$file_keybindings" "$old_terminal" "$new_terminal"
+    safe_replace_in_file "$file_keybindings" "$old_file_explorer" "$new_file_explorer"
+    safe_replace_in_file "$file_keybindings" "$old_editor" "$new_editor"
+    log_success "Hyprland keybindings configured."
+
+    # Configures Fcitx5 for input method.
+    configure_fcitx5() {
+        log_info "Setting up fcitx5..."
+
+        # Install necessary packages
+        for pkg in "${DESKTOP_PACKAGES[@]}"; do
+            install_package "$pkg"
+        done
+
+        # Fish shell configuration
+        mkdir -p "$FISH_CONFIG_DIR"
+        local fish_envs=(
+            'set -gx GTK_IM_MODULE fcitx5'
+            'set -gx QT_IM_MODULE fcitx5'
+            'set -gx XMODIFIERS "@im=fcitx5"'
+        )
+        local fish_file="$FISH_CONFIG_FILE"
+        local fish_missing=false
+
+        for env in "${fish_envs[@]}"; do
+            if ! grep -Fxq "$env" "$fish_file"; then
+                fish_missing=true
+                break
+            fi
+        done
+
+        if $fish_missing; then
+            log_info "Adding fcitx5 environment variables to Fish config..."
+            cat <<EOF >>"$fish_file"
+
+# fcitx5 environment variables
+${fish_envs[0]}
+${fish_envs[1]}
+${fish_envs[2]}
+EOF
+        else
+            log_info "Fish config already contains fcitx5 environment variables. Skipping."
+        fi
+
+        # Bash shell configuration
+        local bashrc="$HOME/.bashrc"
+        local bash_profile="$HOME/.bash_profile"
+        local bash_envs=(
+            'export GTK_IM_MODULE=fcitx'
+            'export QT_IM_MODULE=fcitx'
+            'export XMODIFIERS=@im=fcitx'
+        )
+        local bash_missing=false
+
+        for env in "${bash_envs[@]}"; do
+            if ! grep -Fxq "$env" "$bashrc"; then
+                bash_missing=true
+                break
+            fi
+        done
+
+        if $bash_missing; then
+            log_info "Adding fcitx5 environment variables to .bashrc..."
+            cat <<EOF >>"$bashrc"
+
+# fcitx5 environment variables
+${bash_envs[0]}
+${bash_envs[1]}
+${bash_envs[2]}
+EOF
+        else
+            log_info ".bashrc already contains fcitx5 environment variables. Skipping."
+        fi
+
+        # Ensure .bash_profile loads .bashrc
+        if [ ! -f "$bash_profile" ] || ! grep -q "source ~/.bashrc" "$bash_profile"; then
+            echo '[[ -f ~/.bashrc ]] && source ~/.bashrc' >>"$bash_profile"
+            log_info "Linked ~/.bashrc from ~/.bash_profile."
+        fi
+
+        # Hyprland autostart
+        mkdir -p "$HYPR_CONFIG_DIR" # Ensure directory exists
+        if ! grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE"; then
+            log_info "Adding fcitx5 to Hyprland autostart..."
+            echo "exec-once = fcitx5 -d" >>"$HYPR_CONFIG_FILE"
+        else
+            log_info "fcitx5 is already in Hyprland autostart. Skipping."
+        fi
+        log_success "Fcitx5 setup complete."
+    }
+
+    configure_fcitx5 # Call fcitx5 setup from within setup_hyde
+
+    # Appends Wayland Exec line to Google Chrome .desktop file without replacing the original.
+    configure_chrome_wayland() {
+        local chrome_desktop_file="/usr/share/applications/google-chrome.desktop"
+        local new_exec_line="Exec=/usr/bin/google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime %U"
+
+        if [ -f "$chrome_desktop_file" ]; then
+            if grep -qF -- "$new_exec_line" "$chrome_desktop_file"; then
+                log_info "Google Chrome .desktop file already contains Wayland Exec line. Skipping."
+            else
+                log_info "Appending Wayland Exec line to Google Chrome .desktop file..."
+                echo "$new_exec_line" | sudo tee -a "$chrome_desktop_file" >/dev/null &&
+                    log_success "Wayland Exec line appended to Google Chrome .desktop file." ||
+                    log_error "Failed to append Wayland Exec line."
+            fi
+        else
+            log_warning "Google Chrome .desktop file not found at $chrome_desktop_file. Skipping Wayland configuration."
+        fi
+    }
+
+    configure_chrome_wayland
+}
+
+config_bluetooth() {
+    log_info "Configuring Bluetooth..."
+    install_package "bluez"
+    install_package "bluez-utils"
+
+    log_info "Enabling and starting Bluetooth service..."
+    sudo systemctl enable bluetooth.service
+    sudo systemctl start bluetooth.service
+    if [ "$?" -ne 0 ]; then
+        log_error "Failed to enable or start Bluetooth service."
+        exit 1
+    fi
+    log_success "Bluetooth configuration completed."
+}
+
+clone_wallpaper() {
+    cd ~/Pictures # You can also choose a different location
+    git clone --depth=1 https://github.com/mylinuxforwork/wallpaper.git
+}
+
+config_gnome() {
+    local PACKAGES_TO_REMOVE=(
+        gnome-maps
+        gnome-weather
+        gnome-logs
+        gnome-contacts
+        gnome-connections
+        gnome-clocks
+        gnome-characters
+    )
+
+    is_installed "gnome-tweaks"
+
+    # Loop through the array and attempt to remove each package
+    for package in "${PACKAGES_TO_REMOVE[@]}"; do
+        echo "---"
+        echo "Attempting to uninstall: $package"
+        sudo pacman -Rns --noconfirm "$package"
+        if [ $? -eq 0 ]; then
+            echo "Successfully uninstalled $package."
+        else
+            echo "Failed to uninstall $package. It might not be installed or there was an issue."
+        fi
+        echo "---"
+    done
+}
+
+configure_fcitx5_kde() {
+    log_info "Setting up fcitx5..."
+
+    # Install necessary packages
+    for pkg in "${DESKTOP_PACKAGES[@]}"; do
+        install_package "$pkg"
+    done
+
+    # Fish shell configuration
+    mkdir -p "$FISH_CONFIG_DIR"
+    local fish_envs=(
+        'set -gx XMODIFIERS "@im=fcitx5"'
+    )
+    local fish_file="$FISH_CONFIG_FILE"
+    local fish_missing=false
+
+    for env in "${fish_envs[@]}"; do
+        if ! grep -Fxq "$env" "$fish_file"; then
+            fish_missing=true
+            break
+        fi
+    done
+
+    if $fish_missing; then
+        log_info "Adding fcitx5 environment variables to Fish config..."
+        cat <<EOF >>"$fish_file"
+
+# fcitx5 environment variables
+${fish_envs[0]}
+EOF
+    else
+        log_info "Fish config already contains fcitx5 environment variables. Skipping."
+    fi
+
+    # Bash shell configuration
+    local bashrc="$HOME/.bashrc"
+    local bash_profile="$HOME/.bash_profile"
+    local bash_envs=(
+        'export XMODIFIERS=@im=fcitx'
+    )
+    local bash_missing=false
+
+    for env in "${bash_envs[@]}"; do
+        if ! grep -Fxq "$env" "$bashrc"; then
+            bash_missing=true
+            break
+        fi
+    done
+
+    if $bash_missing; then
+        log_info "Adding fcitx5 environment variables to .bashrc..."
+        cat <<EOF >>"$bashrc"
+
+# fcitx5 environment variables
+${bash_envs[0]}
+EOF
+    else
+        log_info ".bashrc already contains fcitx5 environment variables. Skipping."
+    fi
+
+    # Ensure .bash_profile loads .bashrc
+    if [ ! -f "$bash_profile" ] || ! grep -q "source ~/.bashrc" "$bash_profile"; then
+        echo '[[ -f ~/.bashrc ]] && source ~/.bashrc' >>"$bash_profile"
+        log_info "Linked ~/.bashrc from ~/.bash_profile."
+    fi
+
+    log_success "Fcitx5 setup complete."
+}
+
+configure_fcitx5_gnome() {
+    log_info "Setting up fcitx5..."
+
+    # Install necessary packages
+    for pkg in "${DESKTOP_PACKAGES[@]}"; do
+        install_package "$pkg"
+    done
+
+    # Fish shell configuration
+    mkdir -p "$FISH_CONFIG_DIR"
+    local fish_envs=(
+        'set -gx GTK_IM_MODULE fcitx5'
+        'set -gx QT_IM_MODULE fcitx5'
+        'set -gx XMODIFIERS "@im=fcitx5"'
+    )
+    local fish_file="$FISH_CONFIG_FILE"
+    local fish_missing=false
+
+    for env in "${fish_envs[@]}"; do
+        if ! grep -Fxq "$env" "$fish_file"; then
+            fish_missing=true
+            break
+        fi
+    done
+
+    if $fish_missing; then
+        log_info "Adding fcitx5 environment variables to Fish config..."
+        cat <<EOF >>"$fish_file"
+
+# fcitx5 environment variables
+${fish_envs[0]}
+${fish_envs[1]}
+${fish_envs[2]}
+EOF
+    else
+        log_info "Fish config already contains fcitx5 environment variables. Skipping."
+    fi
+
+    # Bash shell configuration
+    local bashrc="$HOME/.bashrc"
+    local bash_profile="$HOME/.bash_profile"
+    local bash_envs=(
+        'export GTK_IM_MODULE=fcitx'
+        'export QT_IM_MODULE=fcitx'
+        'export XMODIFIERS=@im=fcitx'
+    )
+    local bash_missing=false
+
+    for env in "${bash_envs[@]}"; do
+        if ! grep -Fxq "$env" "$bashrc"; then
+            bash_missing=true
+            break
+        fi
+    done
+
+    if $bash_missing; then
+        log_info "Adding fcitx5 environment variables to .bashrc..."
+        cat <<EOF >>"$bashrc"
+
+# fcitx5 environment variables
+${bash_envs[0]}
+${bash_envs[1]}
+${bash_envs[2]}
+EOF
+    else
+        log_info ".bashrc already contains fcitx5 environment variables. Skipping."
+    fi
+
+    # Ensure .bash_profile loads .bashrc
+    if [ ! -f "$bash_profile" ] || ! grep -q "source ~/.bashrc" "$bash_profile"; then
+        echo '[[ -f ~/.bashrc ]] && source ~/.bashrc' >>"$bash_profile"
+        log_info "Linked ~/.bashrc from ~/.bash_profile."
+    fi
+
+    log_success "Fcitx5 setup complete."
+}
+
+ask_yes_no() {
+    while true; do
+        read -rp "$1 [y/n]: " yn
+        case $yn in
+        [Yy]*) return 0 ;;
+        [Nn]*) return 1 ;;
+        *) echo "Please answer yes or no." ;;
+        esac
+    done
+}
+
 # --- Main Script ---
 
 # Check if yay is installed, and install it if it's not
@@ -409,84 +614,61 @@ for pkg in "${PACKAGES[@]}"; do
     install_package "$pkg"
 done
 
-config_bluetooth() {
-    sudo pacman -S --noconfirm bluez
-
-    sudo pacman -S --noconfirm bluez-utils
-
-    sudo systemctl enable bluetooth.service
-}
-
 set_default_shell
 install_fisher
 install_fish_plugins
 configure_git
-#configure_fcitx5
-#install_nerdfont
 #configure_warp_client
 install_docker
 
-replace_hotkey_hyde() {
+# Ask user if they want to run setup_hyde
+if ask_yes_no "Do you want to install and configure Hyprland and Fcitx5 (setup_hyde)?"; then
+    setup_hyde # Call the hyprland and fcitx5 setup function
+else
+    log_info "Skipping Hyprland and Fcitx5 setup."
+fi
 
-    safe_replace_in_file() {
-        local file="$1"
-        local old_line="$2"
-        local new_line="$3"
+# Ask user if they want to configure Fcitx5
+if ask_yes_no "Do you want to install and configure Fcitx5?"; then
+    configure_fcitx5_gnome
+else
+    log_info "Skipping Fcitx5 setup."
+fi
 
-        if grep -qF "$old_line" "$file"; then
-            sed -i "s|$old_line|$new_line|g" "$file"
-            echo "✅ Đã thay thế: $old_line"
-        else
-            echo "⚠️  Không tìm thấy dòng: $old_line"
-        fi
-    }
+# Ask user if they want to configure Bluetooth
+if ask_yes_no "Do you want to configure Bluetooth?"; then
+    config_bluetooth
+else
+    log_info "Skipping Bluetooth configuration."
+fi
 
-    # Đường dẫn file
-    file_keybindings="$HOME/.config/hypr/keybindings.conf"
+# Ask user if they want to clone wallpaper
+if ask_yes_no "Do you want to clone wallpaper?"; then
+    clone_wallpaper
+else
+    log_info "Skipping clone wallpaper."
+fi
 
-    # Các chuỗi cũ và mới
-    old_terminal='bindd = $mainMod, T, $d terminal emulator , exec, $TERMINAL'
-    new_terminal='bindd = $mainMod, Return, $d terminal emulator , exec, $TERMINAL'
+# Ask user if they want to install warp_client
+if ask_yes_no "Do you want to install warp_client?"; then
+    configure_warp_client
+else
+    log_info "Skipping to install warp_client."
+fi
 
-    old_file_explorer='bindd = $mainMod, E, $d file explorer , exec, $EXPLORER'
-    new_file_explorer='bindd = $mainMod, E, $d file explorer , exec, nautilus'
+# Ask user if they want to config_gnome
+if ask_yes_no "Do you want to config_gnome?"; then
+    config_gnome
+else
+    log_info "Skipping to config_gnome."
+fi
 
-    old_editor='bindd = $mainMod, C, $d text editor , exec, $EDITOR'
-    new_editor='bindd = $mainMod, C, $d text editor , exec, code'
+if ask_yes_no "Do you want to load dump setting extensions?"; then
+    dconf load /org/gnome/shell/extensions/ <dump_extensions.txt
+else
+    log_info "Skipping to dump setting extensions."
+fi
 
-    # Gọi hàm để thay thế
-    safe_replace_in_file "$file_keybindings" "$old_terminal" "$new_terminal"
-    safe_replace_in_file "$file_keybindings" "$old_file_explorer" "$new_file_explorer"
-    safe_replace_in_file "$file_keybindings" "$old_editor" "$new_editor"
-
-}
-
-add_fcitx_env_to_bashrc() {
-    local BASHRC="$HOME/.bashrc"
-    local BASH_PROFILE="$HOME/.bash_profile"
-
-    # Thêm các biến môi trường nếu chưa tồn tại trong ~/.bashrc
-    if ! grep -q "export XMODIFIERS=@im=fcitx" "$BASHRC"; then
-        echo ">> Adding fcitx5 environment variables to ~/.bashrc..."
-        cat <<EOF >>"$BASHRC"
-
-# fcitx5 environment variables
-export XMODIFIERS=@im=fcitx
-export GTK_IM_MODULE=fcitx
-export QT_IM_MODULE=fcitx
-EOF
-    else
-        echo ">> fcitx5 environment variables already exist in ~/.bashrc, skipping."
-    fi
-
-    # Đảm bảo ~/.bash_profile có gọi ~/.bashrc
-    if [ -f "$BASH_PROFILE" ] && ! grep -q "source ~/.bashrc" "$BASH_PROFILE"; then
-        echo '[[ -f ~/.bashrc ]] && source ~/.bashrc' >>"$BASH_PROFILE"
-        echo ">> Linked ~/.bashrc from ~/.bash_profile"
-    fi
-}
-
-
-#add_fcitx_env_to_bashrc
+log_success "Arch Linux setup script completed!"
 
 # --- End Main Script ---
