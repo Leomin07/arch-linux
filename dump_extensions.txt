@@ -1,7 +1,8 @@
 [dash-to-dock]
-apply-custom-theme=false
+apply-custom-theme=true
 background-opacity=0.80000000000000004
-click-action='cycle-windows'
+click-action='previews'
+custom-theme-shrink=true
 dash-max-icon-size=32
 dock-fixed=true
 dock-position='BOTTOM'
@@ -78,6 +79,10 @@ index=1
 
 [paperwm/workspaces/a57f2831-9fb7-4f91-9a0f-0a62196ae541]
 index=0
+
+[system-monitor]
+show-cpu=true
+show-swap=true
 
 [tiling-assistant]
 active-window-hint-color='rgb(211,70,21)'

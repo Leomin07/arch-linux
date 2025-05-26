@@ -34,10 +34,10 @@ MAIN_MOD="SUPER"
 
 # Base packages to install
 PACKAGES=(
-    python python-pip nodejs yarn npm fish ffmpeg vim neovim stow bat fzf tree dotnet-sdk
+    python python-pip nodejs yarn npm fish ffmpeg vim neovim stow bat fzf tree dotnet-sdk-7.0 dotnet-runtime-7.0
     mpv google-chrome brave-bin etcher-bin postman dbeaver visual-studio-code-bin tableplus
     telegram-desktop lazydocker ttf-jetbrains-mono-nerd noto-fonts-cjk noto-fonts ttf-dejavu
-    ttf-liberation kitty alacritty btop fastfetch
+    ttf-liberation otf-font-awesome adwaita-icon-theme noto-fonts-emoji kitty alacritty btop fastfetch
 )
 
 # Input method packages for Vietnamese typing
@@ -128,7 +128,6 @@ configure_git_and_ssh() {
     fi
 }
 
-
 # Install and enable Docker
 install_docker() {
     if is_installed "docker"; then
@@ -190,11 +189,9 @@ setup_hyprland() {
     # Input method setup
     configure_fcitx5
 
-
     # Ensure fcitx5 starts with Hyprland
     mkdir -p "$HYPR_CONFIG_DIR"
     grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE" || echo "exec-once = fcitx5 -d" >>"$HYPR_CONFIG_FILE"
-
 
     # Enable Wayland mode for Chrome
     local chrome_desktop="/usr/share/applications/google-chrome.desktop"
@@ -203,7 +200,6 @@ setup_hyprland() {
 
     log_success "Hyprland setup completed."
 }
-
 
 # Enable Bluetooth services
 configure_bluetooth() {
@@ -241,11 +237,9 @@ ask_yes_no() {
     done
 }
 
-
 # --------------------------------------
 # MAIN EXECUTION
 # --------------------------------------
-
 
 # Install yay if not available
 if ! is_installed "yay"; then
