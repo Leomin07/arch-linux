@@ -128,6 +128,7 @@ configure_git_and_ssh() {
     fi
 }
 
+
 # Install and enable Docker
 install_docker() {
     if is_installed "docker"; then
@@ -189,9 +190,11 @@ setup_hyprland() {
     # Input method setup
     configure_fcitx5
 
+
     # Ensure fcitx5 starts with Hyprland
     mkdir -p "$HYPR_CONFIG_DIR"
     grep -q "exec-once = fcitx5 -d" "$HYPR_CONFIG_FILE" || echo "exec-once = fcitx5 -d" >>"$HYPR_CONFIG_FILE"
+
 
     # Enable Wayland mode for Chrome
     local chrome_desktop="/usr/share/applications/google-chrome.desktop"
@@ -200,6 +203,7 @@ setup_hyprland() {
 
     log_success "Hyprland setup completed."
 }
+
 
 # Enable Bluetooth services
 configure_bluetooth() {
@@ -237,9 +241,11 @@ ask_yes_no() {
     done
 }
 
+
 # --------------------------------------
 # MAIN EXECUTION
 # --------------------------------------
+
 
 # Install yay if not available
 if ! is_installed "yay"; then
