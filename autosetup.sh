@@ -22,35 +22,22 @@ USER_EMAIL="tranminhsvp@gmail.com"
 # SSH key path
 SSH_KEY_FILE="$HOME/.ssh/id_ed25519"
 
-# Fish shell path and config file
-FISH_SHELL="/usr/bin/fish"
-FISH_CONFIG_DIR="$HOME/.config/fish"
-FISH_CONFIG_FILE="$FISH_CONFIG_DIR/config.fish"
-
 # Hyprland configuration
 HYPR_CONFIG_DIR="$HOME/.config/hypr"
 HYPR_CONFIG_FILE="$HYPR_CONFIG_DIR/hyprland.conf"
 MAIN_MOD="SUPER"
 
-# Base packages to install
+# List of base packages to install
 PACKAGES=(
-    python python-pip nodejs yarn npm fish ffmpeg vim neovim stow bat fzf tree dotnet-sdk-7.0 dotnet-runtime-7.0
-    mpv google-chrome brave-bin etcher-bin postman dbeaver visual-studio-code-bin tableplus
-    telegram-desktop lazydocker ttf-jetbrains-mono-nerd noto-fonts-cjk noto-fonts ttf-dejavu
-    ttf-liberation otf-font-awesome adwaita-icon-theme noto-fonts-emoji kitty alacritty btop fastfetch
+    python python-pip tk python-virtualenv ffmpeg vim neovim stow bat fzf tree dotnet-sdk-7.0 dotnet-runtime-7.0 ripgrep tldr
+    kitty alacritty zoxide btop fastfetch visual-studio-code-bin mission-center discord
+    mpv google-chrome brave-bin etcher-bin postman dbeaver
+    telegram-desktop lazydocker ttf-jetbrains-mono-nerd
 )
 
 # Input method packages for Vietnamese typing
 DESKTOP_PACKAGES=(
     fcitx5 fcitx5-configtool fcitx5-qt fcitx5-gtk fcitx5-bamboo
-)
-
-# Fish plugins to install via Fisher
-FISH_PLUGINS=(
-    gazorby/fish-abbreviation-tips
-    jhillyerd/plugin-git
-    jethrokuan/z
-    jorgebucaran/autopair.fish
 )
 
 # --------------------------------------
@@ -71,7 +58,7 @@ check_result() {
     fi
 }
 
-# Check if a package is installed
+# Check if a package is installed (via pacman or yay)
 is_installed() {
     pacman -Q "$1" &>/dev/null || yay -Q "$1" &>/dev/null
 }
@@ -86,36 +73,9 @@ install_package() {
     fi
 }
 
-# Change default shell to Fish
-set_default_shell() {
-    local current_shell
-    current_shell=$(getent passwd "$USER" | cut -d: -f7)
-    if [ "$current_shell" != "$FISH_SHELL" ]; then
-        log_info "Changing default shell to fish..."
-        sudo chsh -s "$FISH_SHELL" "$USER"
-    else
-        log_info "Default shell already set to fish."
-    fi
-}
-
-# Install Fisher and Fish plugins
-install_fisher_and_plugins() {
-    if ! fish -c "type -q fisher"; then
-        log_info "Installing Fisher..."
-        fish -c 'curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher'
-    fi
-
-    for plugin in "${FISH_PLUGINS[@]}"; do
-        if ! fish -c "fisher list | grep -q '$plugin'"; then
-            log_info "Installing fish plugin: $plugin"
-            fish -c "fisher install $plugin"
-        else
-            log_info "Fish plugin $plugin already installed."
-        fi
-    done
-}
-
-# Configure Git global settings and generate SSH key
+# --------------------------------------
+# GIT CONFIGURATION & SSH KEY GENERATION
+# --------------------------------------
 configure_git_and_ssh() {
     git config --global user.name "$USER_NAME"
     git config --global user.email "$USER_EMAIL"
@@ -128,7 +88,9 @@ configure_git_and_ssh() {
     fi
 }
 
-# Install and enable Docker
+# --------------------------------------
+# DOCKER INSTALLATION & ACTIVATION
+# --------------------------------------
 install_docker() {
     if is_installed "docker"; then
         log_info "Docker already installed."
@@ -141,39 +103,65 @@ install_docker() {
     sudo usermod -aG docker "$USER"
     log_success "Docker installed. Please log out or run 'newgrp docker'."
 
-    # Test Docker
+    # Test Docker installation
     sudo docker run hello-world
 }
 
-# Configure fcitx5 input method for Vietnamese typing
+# --------------------------------------
+# FCITX5 VIETNAMESE INPUT METHOD CONFIGURATION
+# --------------------------------------
 configure_fcitx5() {
-    log_info "Configuring fcitx5..."
+    log_info "Configuring fcitx5 (Vietnamese input method)..."
 
-    # Install required packages
-    for pkg in "${DESKTOP_PACKAGES[@]}"; do install_package "$pkg"; done
+    local fcitx5_packages=(fcitx5 fcitx5-frontend-gtk3 fcitx5-configtool fcitx5-bamboo)
+    for pkg in "${fcitx5_packages[@]}"; do install_software "$pkg"; done
 
-    mkdir -p "$FISH_CONFIG_DIR"
-
-    # Add environment variables to Fish and Bash
-    local envs_fish=(
-        'set -gx GTK_IM_MODULE fcitx5'
-        'set -gx QT_IM_MODULE fcitx5'
-        'set -gx XMODIFIERS "@im=fcitx5"'
-    )
-    local envs_bash=(
-        'export GTK_IM_MODULE=fcitx5'
-        'export QT_IM_MODULE=fcitx5'
-        'export XMODIFIERS="@im=fcitx5"'
+    local env_vars=(
+        'GTK_IM_MODULE=fcitx5'
+        'QT_IM_MODULE=fcitx5'
+        'XMODIFIERS="@im=fcitx5"'
     )
 
-    for line in "${envs_fish[@]}"; do grep -qxF "$line" "$FISH_CONFIG_FILE" || echo "$line" >>"$FISH_CONFIG_FILE"; done
-    for line in "${envs_bash[@]}"; do grep -qxF "$line" "$HOME/.bashrc" || echo "$line" >>"$HOME/.bashrc"; done
-    grep -q "source ~/.bashrc" "$HOME/.bash_profile" || echo '[[ -f ~/.bashrc ]] && source ~/.bashrc' >>"$HOME/.bash_profile"
+    # Helper to add environment variables if missing
+    add_env_if_missing() {
+        local file=$1
+        local var_name
+        for env in "${env_vars[@]}"; do
+            var_name="${env%%=*}" # get the variable name
+            if ! grep -qE "^\s*export\s+$var_name=" "$file" 2>/dev/null; then
+                echo "export $env" >>"$file"
+                log_info "Added export $env to $file"
+            else
+                log_info "$var_name already set in $file, skipping..."
+            fi
+        done
+    }
 
-    log_success "Fcitx5 configured."
+    # --- Bash ---
+    local BASH_FILE="$HOME/.bashrc"
+    log_info "Checking Bash config: $BASH_FILE"
+    add_env_if_missing "$BASH_FILE"
+
+    # Source .bashrc from .bash_profile if not already
+    local BASH_PROFILE="$HOME/.bash_profile"
+    grep -q '[[ -f ~/.bashrc ]] && source ~/.bashrc' "$BASH_PROFILE" 2>/dev/null || echo '[[ -f ~/.bashrc ]] && source ~/.bashrc' >>"$BASH_PROFILE"
+
+    # --- Zsh ---
+    local ZSH_FILE="$HOME/.zshrc"
+    log_info "Checking Zsh config: $ZSH_FILE"
+    add_env_if_missing "$ZSH_FILE"
+
+    # Source .zshrc from .zprofile if not already
+    local ZSH_PROFILE="$HOME/.zprofile"
+    grep -q '[[ -f ~/.zshrc ]] && source ~/.zshrc' "$ZSH_PROFILE" 2>/dev/null || echo '[[ -f ~/.zshrc ]] && source ~/.zshrc' >>"$ZSH_PROFILE"
+
+    log_success "Fcitx5 environment variables configured."
+    echo "➡️  Please restart your graphical session or reboot for the changes to take effect."
 }
 
-# Configure Hyprland environment
+# --------------------------------------
+# HYPRLAND CONFIGURATION (WAYLAND + KEYBINDINGS + CHROME)
+# --------------------------------------
 setup_hyprland() {
     log_info "Setting up Hyprland..."
 
@@ -181,7 +169,7 @@ setup_hyprland() {
     mkdir -p "$(dirname "$keybindings")"
     touch "$keybindings"
 
-    # Replace keybinding examples
+    # Replace example keybindings
     sed -i 's|bindd = \$mainMod, T.*|bindd = $mainMod, Return, exec, $TERMINAL|' "$keybindings"
     sed -i 's|bindd = \$mainMod, E.*|bindd = $mainMod, E, exec, nautilus|' "$keybindings"
     sed -i 's|bindd = \$mainMod, C.*|bindd = $mainMod, C, exec, code|' "$keybindings"
@@ -201,7 +189,9 @@ setup_hyprland() {
     log_success "Hyprland setup completed."
 }
 
-# Enable Bluetooth services
+# --------------------------------------
+# BLUETOOTH CONFIGURATION
+# --------------------------------------
 configure_bluetooth() {
     log_info "Configuring Bluetooth..."
     install_package "bluez"
@@ -210,22 +200,45 @@ configure_bluetooth() {
     log_success "Bluetooth configured."
 }
 
-# Clone wallpaper repo from GitHub
+# --------------------------------------
+# CLONE WALLPAPER FROM GITHUB
+# --------------------------------------
 clone_wallpaper_repo() {
     mkdir -p ~/Pictures
-    git clone --depth=1 https://github.com/mylinuxforwork/wallpaper.git ~/Pictures/wallpaper
+    git clone --depth=1 https://github.com/Leomin07/wallpaper.git ~/Pictures/wallpaper
     log_success "Wallpapers cloned."
 }
 
-# Remove unwanted GNOME default apps
+# --------------------------------------
+# REMOVE UNWANTED DEFAULT GNOME APPS
+# --------------------------------------
 remove_gnome_apps() {
-    local apps=(gnome-maps gnome-weather gnome-logs gnome-contacts gnome-connections gnome-clocks gnome-characters)
+    local apps=(gnome-maps gnome-weather gnome-logs gnome-contacts gnome-connections gnome-clocks gnome-characters gnome-calendar gnome-music)
     for app in "${apps[@]}"; do
         sudo pacman -Rns --noconfirm "$app" && log_info "Removed $app"
     done
 }
 
-# Prompt user for yes/no
+# --------------------------------------
+# INSTALL NODEJS (NVM + YARN)
+# --------------------------------------
+install_nodejs() {
+    # Download and install nvm
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+
+    # Source nvm script for current session
+    \. "$HOME/.nvm/nvm.sh"
+
+    # Install latest LTS Node.js
+    nvm install --lts
+
+    # Install Yarn
+    npm install --global yarn
+}
+
+# --------------------------------------
+# YES/NO PROMPT FUNCTION
+# --------------------------------------
 ask_yes_no() {
     while true; do
         read -rp "$1 [y/n]: " yn
@@ -235,6 +248,211 @@ ask_yes_no() {
         *) echo "Please answer yes or no." ;;
         esac
     done
+}
+
+# --------------------------------------
+# INSTALL CLOUDFLARE WARP VPN
+# --------------------------------------
+install_warp_client() {
+    install_package "cloudflare-warp-bin"
+    log_info "Registering Cloudflare WARP..."
+    sudo systemctl start warp-svc
+    warp-cli registration new
+    log_info "Connecting Cloudflare WARP..."
+    warp-cli connect
+}
+
+# --------------------------------------
+# GNOME KEYRING FOR GIT/VSCODE
+# --------------------------------------
+config_gnome_keyring() {
+    sudo pacman -S --noconfirm gnome-keyring
+    sudo pacman -S --noconfirm libsecret
+    git config --global credential.helper /usr/lib/git-core/git-credential-libsecret
+}
+
+# --------------------------------------
+# INSTALL & CONFIGURE ZSH (Oh My Zsh + plugins)
+# --------------------------------------
+install_zsh() {
+    if ! command -v zsh &>/dev/null; then
+        log_info "Installing Zsh..."
+        sudo pacman -S --noconfirm zsh && log_success "Zsh installed." || {
+            log_error "Failed to install Zsh."
+            return 1
+        }
+    else
+        log_info "Zsh is already installed, skipping."
+    fi
+
+    if [ ! -d "$HOME/.oh-my-zsh" ]; then
+        log_info "Installing Oh My Zsh..."
+        RUNZSH=no CHSH=no KEEP_ZSHRC=yes \
+            sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" &&
+            log_success "Oh My Zsh installed." || {
+            log_error "Failed to install Oh My Zsh."
+            return 1
+        }
+    else
+        log_info "Oh My Zsh is already installed, skipping."
+    fi
+
+    local real_user="${SUDO_USER:-$USER}"
+    local current_shell
+    current_shell="$(getent passwd "$real_user" | cut -d: -f7)"
+
+    if [ "$current_shell" != "$(which zsh)" ]; then
+        log_info "Changing default shell to Zsh for user $real_user..."
+        sudo chsh -s "$(which zsh)" "$real_user" &&
+            log_success "Default shell changed to Zsh (log out to apply)." || log_error "Failed to change default shell to Zsh."
+    else
+        log_info "Default shell is already Zsh."
+    fi
+}
+
+install_zsh_plugins() {
+    local plugins_dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins"
+
+    declare -A plugins=(
+        ["zsh-autosuggestions"]="https://github.com/zsh-users/zsh-autosuggestions"
+        ["zsh-syntax-highlighting"]="https://github.com/zsh-users/zsh-syntax-highlighting"
+        ["zsh-completions"]="https://github.com/zsh-users/zsh-completions"
+    )
+
+    for name in "${!plugins[@]}"; do
+        local dir="$plugins_dir/$name"
+        if [ ! -d "$dir" ]; then
+            log_info "Installing Zsh plugin: $name..."
+            git clone "${plugins[$name]}" "$dir" && log_success "Plugin '$name' installed." || log_error "Failed to install plugin '$name'."
+        else
+            log_info "Zsh plugin '$name' is already installed, skipping."
+        fi
+    done
+
+    log_warning "📌 Add the following plugins to your ~/.zshrc: plugins=(git zsh-autosuggestions zsh-syntax-highlighting zsh-completions z docker docker-compose)"
+}
+
+config_zsh_plugins() {
+    local zshrc="$HOME/.zshrc"
+    local desired_plugins="plugins=(git zsh-autosuggestions zsh-syntax-highlighting zsh-completions z docker docker-compose)"
+
+    if grep -qE '^plugins=\(.*\)' "$zshrc"; then
+        log_info "Updating plugins list in ~/.zshrc..."
+        sed -i 's/^plugins=(.*)/'"$desired_plugins"'/' "$zshrc" &&
+            log_success "Updated plugins in ~/.zshrc." ||
+            log_error "Failed to update plugins in ~/.zshrc."
+    else
+        log_info "Adding plugins list to ~/.zshrc..."
+        echo "$desired_plugins" >>"$zshrc" &&
+            log_success "Added plugins to ~/.zshrc." ||
+            log_error "Failed to add plugins to ~/.zshrc."
+    fi
+}
+
+# --------------------------------------
+# INSTALL & CONFIGURE STARSHIP PROMPT
+# --------------------------------------
+install_starship() {
+    log_info "Installing Starship prompt..."
+
+    # Install Starship if not already installed
+    if ! command -v starship &>/dev/null; then
+        log_info "Starship not found. Downloading and installing..."
+        curl -sS https://starship.rs/install.sh | sh -s -- -y &&
+            log_success "Starship installed successfully." || log_error "Failed to install Starship."
+    else
+        log_info "Starship is already installed. Skipping installation."
+    fi
+
+    # Function to append init command if not already present
+    add_starship_init() {
+        local shell_rc="$1"
+        local shell_name="$2"
+        local init_cmd="eval \"\$(starship init $shell_name)\""
+
+        if ! grep -Fxq "$init_cmd" "$shell_rc"; then
+            echo "$init_cmd" >>"$shell_rc"
+            log_info "Added Starship init to $shell_rc"
+        else
+            log_info "Starship init already exists in $shell_rc. Skipping."
+        fi
+    }
+
+    # Configure for bash
+    [ -f ~/.bashrc ] && add_starship_init ~/.bashrc bash
+
+    # Configure for zsh
+    [ -f ~/.zshrc ] && add_starship_init ~/.zshrc zsh
+
+    log_success "Starship setup completed."
+}
+
+# --------------------------------------
+# ZOXIDE (SMART CD) CONFIGURATION
+# --------------------------------------
+config_zoxide() {
+    local bashrc="$HOME/.bashrc"
+    local zshrc="$HOME/.zshrc"
+
+    local bash_init='eval "$(zoxide init bash)"'
+    local zsh_init='eval "$(zoxide init zsh)"'
+
+    # Add to Bash config
+    if [ -f "$bashrc" ] && ! grep -Fxq "$bash_init" "$bashrc"; then
+        echo "$bash_init" >>"$bashrc"
+        echo "[✔] Added zoxide init to $bashrc"
+    else
+        echo "[✔] zoxide already configured in $bashrc or file not found"
+    fi
+
+    # Add to Zsh config
+    if [ -f "$zshrc" ] && ! grep -Fxq "$zsh_init" "$zshrc"; then
+        echo "$zsh_init" >>"$zshrc"
+        echo "[✔] Added zoxide init to $zshrc"
+    else
+        echo "[✔] zoxide already configured in $zshrc or file not found"
+    fi
+}
+
+# --------------------------------------
+# FONTS INSTALLATION
+# --------------------------------------
+install_fonts() {
+    local font_packages=(
+        noto-fonts
+        adobe-source-han-sans-otc-fonts
+        noto-fonts-emoji
+        ttf-dejavu
+        ttf-roboto
+        ttf-liberation
+        adobe-source-han-sans-otc-fonts
+    )
+
+    for pkg in "${font_packages[@]}"; do
+        if ! pacman -Q "$pkg" &>/dev/null; then
+            echo "[INFO] Installing font: $pkg"
+            yay -S --noconfirm "$pkg"
+        else
+            echo "[INFO] Font '$pkg' already installed, skipping."
+        fi
+    done
+}
+
+# --------------------------------------
+# GNOME FULL ENVIRONMENT SETUP (Bluetooth, keyring, remove apps, extensions)
+# --------------------------------------
+configure_gnome_environment() {
+    log_info "=== Configuring GNOME environment... ==="
+    configure_bluetooth
+    config_gnome_keyring
+    remove_gnome_apps
+    if [ -f dump_extensions.txt ]; then
+        log_info "Loading GNOME extension settings from dump_extensions.txt"
+        dconf load /org/gnome/shell/extensions/ <dump_extensions.txt
+    else
+        log_warning "File dump_extensions.txt not found. Skipping GNOME extension load."
+    fi
+    log_success "=== GNOME environment configuration complete! ==="
 }
 
 # --------------------------------------
@@ -249,33 +467,40 @@ if ! is_installed "yay"; then
     cd yay && makepkg -si --noconfirm && cd .. && rm -rf yay
 fi
 
-# Set timezone and update system
+# Set timezone & update system
 sudo timedatectl set-timezone "$TIMEZONE"
 sudo pacman -Syu --noconfirm
 
 # Install all base packages
 for pkg in "${PACKAGES[@]}"; do install_package "$pkg"; done
 
-# Set Fish as default shell
-set_default_shell
+# Install and configure Zsh & plugins
+install_zsh
+install_zsh_plugins
+config_zsh_plugins
 
-# Install Fisher + plugins
-install_fisher_and_plugins
+# Install NodeJS (nvm, yarn)
+install_nodejs
 
-# Setup Git and SSH
+# Configure Git and SSH key
 configure_git_and_ssh
 
-# Docker installation
+# Install and enable Docker
 install_docker
 
-# Optional setups
+# Install and configure Starship prompt
+install_starship
+
+# Optional setups with yes/no prompt
+if ask_yes_no "Install recommended fonts?"; then install_fonts; fi
+if ask_yes_no "Configure config_zoxide?"; then config_zoxide; fi
 if ask_yes_no "Configure Hyprland and fcitx5?"; then setup_hyprland; fi
 if ask_yes_no "Configure fcitx5 environment (GNOME)?"; then configure_fcitx5; fi
-if ask_yes_no "Configure Bluetooth?"; then configure_bluetooth; fi
+if ask_yes_no "Install warp client?"; then install_warp_client; fi
 if ask_yes_no "Clone wallpaper repository?"; then clone_wallpaper_repo; fi
-if ask_yes_no "Remove unwanted GNOME apps?"; then remove_gnome_apps; fi
-if ask_yes_no "Load GNOME extension settings from file?"; then
-    dconf load /org/gnome/shell/extensions/ <dump_extensions.txt
+
+if ask_yes_no "Configure full GNOME environment (Bluetooth, keyring, remove apps, GNOME extensions)?"; then
+    configure_gnome_environment
 fi
 
 log_success "Arch Linux setup script completed!"
