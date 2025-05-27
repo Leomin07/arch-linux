@@ -219,7 +219,7 @@ clone_wallpaper_repo() {
 
 # Remove unwanted GNOME default apps
 remove_gnome_apps() {
-    local apps=(gnome-maps gnome-weather gnome-logs gnome-contacts gnome-connections gnome-clocks gnome-characters)
+    local apps=(gnome-maps gnome-weather gnome-logs gnome-contacts gnome-connections gnome-clocks gnome-characters gnome-calendar gnome-music)
     for app in "${apps[@]}"; do
         sudo pacman -Rns --noconfirm "$app" && log_info "Removed $app"
     done
