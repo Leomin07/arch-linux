@@ -35,9 +35,10 @@ MAIN_MOD="SUPER"
 # Base packages to install
 PACKAGES=(
     python python-pip nodejs yarn npm fish ffmpeg vim neovim stow bat fzf tree dotnet-sdk-7.0 dotnet-runtime-7.0
-    mpv google-chrome brave-bin etcher-bin postman dbeaver visual-studio-code-bin tableplus
-    telegram-desktop lazydocker ttf-jetbrains-mono-nerd noto-fonts-cjk noto-fonts ttf-dejavu
-    ttf-liberation otf-font-awesome adwaita-icon-theme noto-fonts-emoji kitty alacritty btop fastfetch
+    kitty alacritty btop fastfetch extension-manager visual-studio-code-bin
+    mpv google-chrome brave-bin etcher-bin postman dbeaver
+    telegram-desktop lazydocker ttf-jetbrains-mono-nerd
+    noto-fonts adobe-source-han-sans-otc-fonts noto-fonts-emoji ttf-dejavu ttf-roboto ttf-liberation adobe-source-han-sans-otc-fonts
 )
 
 # Input method packages for Vietnamese typing
@@ -213,13 +214,13 @@ configure_bluetooth() {
 # Clone wallpaper repo from GitHub
 clone_wallpaper_repo() {
     mkdir -p ~/Pictures
-    git clone --depth=1 https://github.com/mylinuxforwork/wallpaper.git ~/Pictures/wallpaper
+    git clone --depth=1 https://github.com/Leomin07/wallpaper.git ~/Pictures/wallpaper
     log_success "Wallpapers cloned."
 }
 
 # Remove unwanted GNOME default apps
 remove_gnome_apps() {
-    local apps=(gnome-maps gnome-weather gnome-logs gnome-contacts gnome-connections gnome-clocks gnome-characters)
+    local apps=(gnome-maps gnome-weather gnome-logs gnome-contacts gnome-connections gnome-clocks gnome-characters gnome-calendar gnome-music)
     for app in "${apps[@]}"; do
         sudo pacman -Rns --noconfirm "$app" && log_info "Removed $app"
     done
@@ -235,6 +236,67 @@ ask_yes_no() {
         *) echo "Please answer yes or no." ;;
         esac
     done
+}
+
+# Install warp
+install_warp_client() {
+    install_package "cloudflare-warp-bin"
+    log_info "Registering Cloudflare WARP..."
+    sudo systemctl start warp-svc
+    warp-cli registration new
+    log_info "Connecting Cloudflare WARP..."
+    warp-cli connect
+}
+
+config_gnome_keyring() {
+    sudo pacman -S --noconfirm gnome-keyring
+    sudo pacman -S --noconfirm libsecret
+    git config --global credential.helper /usr/lib/git-core/git-credential-libsecret
+}
+
+# Install starship
+install_starship() {
+    echo "[INFO] Installing Starship prompt..."
+
+    # Install Starship if not already installed
+    if ! command -v starship &>/dev/null; then
+        echo "[INFO] Starship not found. Downloading and installing..."
+        curl -sS https://starship.rs/install.sh | sh -s -- -y
+    else
+        echo "[INFO] Starship is already installed. Skipping installation."
+    fi
+
+    # Function to append init command if not already present
+    add_starship_init() {
+        local shell_rc="$1"
+        local shell_name="$2"
+        local init_cmd="eval \"\$(starship init $shell_name)\""
+
+        if ! grep -Fxq "$init_cmd" "$shell_rc"; then
+            echo "$init_cmd" >>"$shell_rc"
+            echo "[INFO] Added Starship init to $shell_rc"
+        else
+            echo "[INFO] Starship init already exists in $shell_rc. Skipping."
+        fi
+    }
+
+    # Configure for bash
+    if [ -f ~/.bashrc ]; then
+        add_starship_init ~/.bashrc bash
+    fi
+
+    # Configure for fish
+    fish_config="$HOME/.config/fish/config.fish"
+    fish_init_cmd='starship init fish | source'
+    mkdir -p "$(dirname "$fish_config")"
+    if ! grep -Fxq "$fish_init_cmd" "$fish_config"; then
+        echo "$fish_init_cmd" >>"$fish_config"
+        echo "[INFO] Added Starship init to $fish_config"
+    else
+        echo "[INFO] Starship init already exists in $fish_config. Skipping."
+    fi
+
+    echo "[INFO] Starship setup completed."
 }
 
 # --------------------------------------
@@ -268,12 +330,17 @@ configure_git_and_ssh
 # Docker installation
 install_docker
 
+# Install starship
+install_starship
+
 # Optional setups
 if ask_yes_no "Configure Hyprland and fcitx5?"; then setup_hyprland; fi
 if ask_yes_no "Configure fcitx5 environment (GNOME)?"; then configure_fcitx5; fi
+if ask_yes_no "Install warp client?"; then install_warp_client; fi
 if ask_yes_no "Configure Bluetooth?"; then configure_bluetooth; fi
 if ask_yes_no "Clone wallpaper repository?"; then clone_wallpaper_repo; fi
 if ask_yes_no "Remove unwanted GNOME apps?"; then remove_gnome_apps; fi
+if ask_yes_no "Config gnome keyring(VSCode)"; then config_gnome_keyring; fi
 if ask_yes_no "Load GNOME extension settings from file?"; then
     dconf load /org/gnome/shell/extensions/ <dump_extensions.txt
 fi
