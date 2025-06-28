@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Exec=xmodmap ~/arch-linux/.Xmodmap
+Exec=xmodmap ~/arch-linux/.xmodmap
 X-GNOME-Autostart-enabled=true
 NoDisplay=false
 Hidden=false
