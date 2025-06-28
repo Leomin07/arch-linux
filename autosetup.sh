@@ -503,4 +503,6 @@ if ask_yes_no "Configure full GNOME environment (Bluetooth, keyring, remove apps
     configure_gnome_environment
 fi
 
+chmod +x map-key.desktop
+
 log_success "Arch Linux setup script completed!"
